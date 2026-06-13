@@ -1,0 +1,69 @@
+using BotReport2026.Models;
+
+namespace BotReport2026.Rules;
+
+public class Rule101SanctionMatch : IRuleEngine
+{
+    public string RuleCode => "101";
+
+    public (List<SbeRecord>, List<SaeRecord>) Execute(RuleContext ctx)
+    {
+        var sbe = new List<SbeRecord>();
+        var period = ctx.ReportingMonth.ToString("yyyy-MM");
+
+        // Group by PersonId
+        var byPerson = ctx.ReportingMonthRsp
+            .Where(t => !string.IsNullOrWhiteSpace(t.PersonId))
+            .GroupBy(t => t.PersonId.Trim(), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var group in byPerson)
+        {
+            string personId = group.Key;
+            bool hit = false;
+
+            // TH/CFR match — ID only
+            if (ctx.SanctionData.ThSanctionIds.Contains(personId))
+                hit = true;
+
+            // UN match — ID AND name
+            if (!hit && ctx.SanctionData.UnSanctionIds.Contains(personId))
+            {
+                var first = group.First();
+                string fullName = first.FullName.ToUpperInvariant();
+                if (ctx.SanctionData.UnSanctionNameToIds.TryGetValue(personId, out var nameSet))
+                {
+                    foreach (var alias in nameSet)
+                    {
+                        if (fullName.Contains(alias.ToUpperInvariant()) ||
+                            alias.ToUpperInvariant().Contains(fullName))
+                        {
+                            hit = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (!hit) continue;
+
+            var txns = group.ToList();
+            var first2 = txns[0];
+            sbe.Add(new SbeRecord
+            {
+                ReportingPeriod = period,
+                FirstName = first2.FirstName,
+                LastName = first2.LastName,
+                PersonRefId = personId,
+                AnomalyDate = txns.Min(t => t.TransactionDate),
+                BehaviorType = "101",
+                RuleCode = RuleCode,
+                MtcnList = string.Join(", ", txns.Select(t => t.MTCN).Distinct()),
+                TransactionCount = txns.Count,
+                TotalAmount = txns.Sum(t => t.Principal)
+            });
+        }
+
+        ctx.LogCallback($"Rule 101: พบ {sbe.Count} รายการที่ตรงกับ Sanction List");
+        return (sbe, new List<SaeRecord>());
+    }
+}

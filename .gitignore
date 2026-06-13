@@ -1,0 +1,41 @@
+# ---- .NET / Visual Studio ----
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+
+# Build / publish output
+publish/
+*.dll
+*.pdb
+
+# Rider / VS Code
+.idea/
+.vscode/
+
+# ---- Python tooling (tools/) ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# ---- Generated report output ----
+report-results/*.xlsx
+report-results/*.csv
+
+# ---- OS / misc ----
+Thumbs.db
+desktop.ini
+.DS_Store
+*.tmp
+*.bak
+~$*
+_tmp_*.txt

@@ -28,28 +28,34 @@ public class Rule206HighRiskBranch : IRuleEngine
 
         foreach (var group in filtered)
         {
-            var txns = group.ToList();
-            decimal total = txns.Sum(t => t.Principal);
-            int count = txns.Count;
+            var ibTxns = group.Where(t => t.Direction == "IB").ToList();
+            var obTxns = group.Where(t => t.Direction == "OB").ToList();
 
-            if (total >= ctx.Config.Rule206PrincipalThreshold ||
-                count >= ctx.Config.Rule206TxnCountThreshold)
+            bool ibBreach = ibTxns.Count > 0 &&
+                (ibTxns.Sum(t => t.Principal) >= ctx.Config.Rule206PrincipalThreshold ||
+                 ibTxns.Count >= ctx.Config.Rule206TxnCountThreshold);
+            bool obBreach = obTxns.Count > 0 &&
+                (obTxns.Sum(t => t.Principal) >= ctx.Config.Rule206PrincipalThreshold ||
+                 obTxns.Count >= ctx.Config.Rule206TxnCountThreshold);
+
+            var resolved = DirectionalFlagResolver.Resolve(ibBreach, ibTxns, obBreach, obTxns);
+            if (resolved == null) continue;
+            var (txns, suffix) = resolved.Value;
+
+            var first = txns[0];
+            sbe.Add(new SbeRecord
             {
-                var first = txns[0];
-                sbe.Add(new SbeRecord
-                {
-                    ReportingPeriod = period,
-                    FirstName = first.FirstName,
-                    LastName = first.LastName,
-                    PersonRefId = group.Key,
-                    AnomalyDate = txns.Min(t => t.TransactionDate),
-                    BehaviorType = "206",
-                    RuleCode = RuleCode,
-                    MtcnList = string.Join(", ", txns.Select(t => t.MTCN).Distinct()),
-                    TransactionCount = count,
-                    TotalAmount = total
-                });
-            }
+                ReportingPeriod = period,
+                FirstName = first.FirstName,
+                LastName = first.LastName,
+                PersonRefId = group.Key,
+                AnomalyDate = txns.Min(t => t.TransactionDate),
+                BehaviorType = "206",
+                RuleCode = RuleCode + suffix,
+                MtcnList = string.Join(", ", txns.Select(t => t.MTCN).Distinct()),
+                TransactionCount = txns.Count,
+                TotalAmount = txns.Sum(t => t.Principal)
+            });
         }
 
         ctx.LogCallback($"Rule 206: พบ {sbe.Count} รายการจากสาขาพื้นที่เสี่ยง");

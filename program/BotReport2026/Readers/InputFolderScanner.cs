@@ -64,7 +64,7 @@ public static class InputFolderScanner
         var outbound = new List<InputFile>();
         if (!Directory.Exists(dir)) return (inbound, outbound);
 
-        foreach (var path in Directory.GetFiles(dir, "*.xlsx"))
+        foreach (var path in Directory.GetFiles(dir))
         {
             string name = Path.GetFileName(path);
             if (name.StartsWith("~$")) continue; // skip Excel temp locks
@@ -83,7 +83,7 @@ public static class InputFolderScanner
         var result = new List<InputFile>();
         if (!Directory.Exists(dir)) return result;
 
-        foreach (var path in Directory.GetFiles(dir, "*.xlsx"))
+        foreach (var path in Directory.GetFiles(dir))
         {
             string name = Path.GetFileName(path);
             if (name.StartsWith("~$")) continue;

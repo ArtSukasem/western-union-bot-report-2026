@@ -19,65 +19,74 @@ public class Rule202AbnormalVolume : IRuleEngine
                          t.TransactionDate.Value.Month != reportingYM.Month))
             .ToList();
 
-        // Group historical: personId → month → total principal
-        var histByPerson = new Dictionary<string, Dictionary<(int year, int month), decimal>>(StringComparer.OrdinalIgnoreCase);
+        // Group historical: (personId, direction) → month → total principal
+        var histByPerson = new Dictionary<(string personId, string direction), Dictionary<(int year, int month), decimal>>();
         foreach (var t in historical)
         {
             if (string.IsNullOrWhiteSpace(t.PersonId)) continue;
-            if (!histByPerson.TryGetValue(t.PersonId, out var monthMap))
+            var key = (t.PersonId.Trim().ToUpperInvariant(), t.Direction);
+            if (!histByPerson.TryGetValue(key, out var monthMap))
             {
                 monthMap = new Dictionary<(int, int), decimal>();
-                histByPerson[t.PersonId] = monthMap;
+                histByPerson[key] = monthMap;
             }
             var ym = (t.TransactionDate!.Value.Year, t.TransactionDate.Value.Month);
             monthMap[ym] = monthMap.GetValueOrDefault(ym) + t.Principal;
         }
 
-        // Reporting month totals
+        // Reporting month totals, grouped by person only (direction split happens below)
         var reportingByPerson = ctx.ReportingMonthRsp
             .Where(t => !string.IsNullOrWhiteSpace(t.PersonId))
             .GroupBy(t => t.PersonId.Trim(), StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 
-        foreach (var kvp in reportingByPerson)
+        // Evaluates one direction's breach: true if it has history and reportingTotal > avg * multiplier
+        bool IsBreach(string personId, string direction, List<RspTransaction> txns)
         {
-            string personId = kvp.Key;
-            var txns = kvp.Value;
-            decimal reportingTotal = txns.Sum(t => t.Principal);
+            if (txns.Count == 0) return false;
+            if (!histByPerson.TryGetValue((personId.ToUpperInvariant(), direction), out var monthMap) || monthMap.Count == 0)
+                return false;
 
-            // Skip if person has no history (new customer)
-            if (!histByPerson.TryGetValue(personId, out var monthMap) || monthMap.Count == 0)
-                continue;
-
-            // Take only the N most recent prior months (months with activity)
             var activePriorMonths = monthMap
                 .OrderByDescending(m => m.Key.year * 100 + m.Key.month)
                 .Take(ctx.Config.Rule202PriorMonths)
                 .Select(m => m.Value)
                 .ToList();
 
-            if (activePriorMonths.Count == 0) continue;
+            if (activePriorMonths.Count == 0) return false;
 
             decimal avg = activePriorMonths.Average();
             decimal threshold = avg * ctx.Config.Rule202Multiplier;
+            return txns.Sum(t => t.Principal) > threshold;
+        }
 
-            if (reportingTotal > threshold)
+        foreach (var kvp in reportingByPerson)
+        {
+            string personId = kvp.Key;
+            var ibTxns = kvp.Value.Where(t => t.Direction == "IB").ToList();
+            var obTxns = kvp.Value.Where(t => t.Direction == "OB").ToList();
+
+            bool ibBreach = IsBreach(personId, "IB", ibTxns);
+            bool obBreach = IsBreach(personId, "OB", obTxns);
+
+            var resolved = DirectionalFlagResolver.Resolve(ibBreach, ibTxns, obBreach, obTxns);
+            if (resolved == null) continue;
+            var (txns, suffix) = resolved.Value;
+
+            var first = txns[0];
+            sbe.Add(new SbeRecord
             {
-                var first = txns[0];
-                sbe.Add(new SbeRecord
-                {
-                    ReportingPeriod = period,
-                    FirstName = first.FirstName,
-                    LastName = first.LastName,
-                    PersonRefId = personId,
-                    AnomalyDate = txns.Min(t => t.TransactionDate),
-                    BehaviorType = "202",
-                    RuleCode = RuleCode,
-                    MtcnList = string.Join(", ", txns.Select(t => t.MTCN).Distinct()),
-                    TransactionCount = txns.Count,
-                    TotalAmount = reportingTotal,
-                });
-            }
+                ReportingPeriod = period,
+                FirstName = first.FirstName,
+                LastName = first.LastName,
+                PersonRefId = personId,
+                AnomalyDate = txns.Min(t => t.TransactionDate),
+                BehaviorType = "202",
+                RuleCode = RuleCode + suffix,
+                MtcnList = string.Join(", ", txns.Select(t => t.MTCN).Distinct()),
+                TransactionCount = txns.Count,
+                TotalAmount = txns.Sum(t => t.Principal),
+            });
         }
 
         ctx.LogCallback($"Rule 202: พบ {sbe.Count} รายการยอดผิดปกติ (avg × {ctx.Config.Rule202Multiplier})");

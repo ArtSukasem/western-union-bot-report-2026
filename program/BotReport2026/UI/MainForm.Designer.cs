@@ -24,15 +24,15 @@ partial class MainForm
 
         _menuStrip = new MenuStrip();
         _menuFile = new ToolStripMenuItem("ไฟล์");
-        _menuSaveConfig = new ToolStripMenuItem("บันทึกค่าตั้ง");
-        _menuLoadConfig = new ToolStripMenuItem("โหลดค่าตั้ง");
+        _menuSaveConfig = new ToolStripMenuItem("บันทึกตั้งค่า");
+        _menuLoadConfig = new ToolStripMenuItem("โหลดตั้งค่า");
         _menuFile.DropDownItems.Add(_menuSaveConfig);
         _menuFile.DropDownItems.Add(_menuLoadConfig);
         _menuStrip.Items.Add(_menuFile);
         MainMenuStrip = _menuStrip;
 
-        _menuSaveConfig.Click += (_, _) => { _config = _tabSettings.GetConfig(); BotReport2026.Config.ConfigManager.Save(_config); MessageBox.Show("บันทึกค่าตั้งเรียบร้อย", "บันทึก"); };
-        _menuLoadConfig.Click += (_, _) => { _config = BotReport2026.Config.ConfigManager.Load(); _tabSettings.SetConfig(_config); MessageBox.Show("โหลดค่าตั้งเรียบร้อย", "โหลด"); };
+        _menuSaveConfig.Click += (_, _) => { _config = _tabSettings.GetConfig(); BotReport2026.Config.ConfigManager.Save(_config); MessageBox.Show("บันทึกตั้งค่าเรียบร้อย", "บันทึก"); };
+        _menuLoadConfig.Click += (_, _) => { _config = BotReport2026.Config.ConfigManager.Load(); _tabSettings.SetConfig(_config); MessageBox.Show("โหลดตั้งค่าเรียบร้อย", "โหลด"); };
 
         _tabFileSelection = new TabFileSelection();
         _tabSettings = new TabSettings();

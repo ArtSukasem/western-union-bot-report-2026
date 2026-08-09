@@ -77,19 +77,27 @@ public class Rule203IncomeMismatch : IRuleEngine
             }
 
             decimal threshold = expectedIncome.Value * ctx.Config.Rule203Multiplier;
-            decimal windowTotal = group.Sum(t => t.Principal);
+            decimal ibWindowTotal = group.Where(t => t.Direction == "IB").Sum(t => t.Principal);
+            decimal obWindowTotal = group.Where(t => t.Direction == "OB").Sum(t => t.Principal);
 
-            if (windowTotal <= threshold) continue;
-
-            // Flag only reporting-month transactions for this person
+            // Flag only reporting-month transactions for this person, split by direction
             var reportingTxns = ctx.ReportingMonthRsp
                 .Where(t => !excludedBranches.Contains(t.BranchAccountId.ToUpperInvariant()))
                 .Where(t => t.PersonId.Equals(personId, StringComparison.OrdinalIgnoreCase))
                 .ToList();
+            var ibReportingTxns = reportingTxns.Where(t => t.Direction == "IB").ToList();
+            var obReportingTxns = reportingTxns.Where(t => t.Direction == "OB").ToList();
 
-            if (reportingTxns.Count == 0) continue;
+            // A direction only counts as breached if it also has reporting-month activity to report
+            bool ibBreach = ibWindowTotal > threshold && ibReportingTxns.Count > 0;
+            bool obBreach = obWindowTotal > threshold && obReportingTxns.Count > 0;
+            if (!ibBreach && !obBreach) continue;
 
-            var first = reportingTxns[0];
+            var resolved = DirectionalFlagResolver.Resolve(ibBreach, ibReportingTxns, obBreach, obReportingTxns);
+            if (resolved == null) continue;
+            var (txns, suffix) = resolved.Value;
+
+            var first = txns[0];
             sbeList.Add(new SbeRecord
             {
                 ReportingPeriod = period,
@@ -97,12 +105,12 @@ public class Rule203IncomeMismatch : IRuleEngine
                 LastName = first.LastName,
                 PersonRefId = personId,
                 MonthlyIncome = expectedIncome,
-                AnomalyDate = reportingTxns.Min(t => t.TransactionDate),
+                AnomalyDate = txns.Min(t => t.TransactionDate),
                 BehaviorType = "203",
-                RuleCode = "203-Retail",
-                MtcnList = string.Join(", ", reportingTxns.Select(t => t.MTCN).Distinct()),
-                TransactionCount = reportingTxns.Count,
-                TotalAmount = reportingTxns.Sum(t => t.Principal)
+                RuleCode = "203-Retail" + suffix,
+                MtcnList = string.Join(", ", txns.Select(t => t.MTCN).Distinct()),
+                TransactionCount = txns.Count,
+                TotalAmount = txns.Sum(t => t.Principal)
             });
         }
 

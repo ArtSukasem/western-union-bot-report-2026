@@ -39,8 +39,8 @@ public class TabSettings : UserControl
         layout.Controls.Add(Make301Info());
 
         var btnPanel = new FlowLayoutPanel { Height = 40, AutoSize = true };
-        var btnSave = new Button { Text = "💾 บันทึกค่าตั้ง", AutoSize = true };
-        var btnLoad = new Button { Text = "📂 โหลดค่าตั้ง", AutoSize = true };
+        var btnSave = new Button { Text = "💾 บันทึกตั้งค่า", AutoSize = true };
+        var btnLoad = new Button { Text = "📂 โหลดตั้งค่า", AutoSize = true };
         btnSave.Click += (_, _) => { Config.ConfigManager.Save(GetConfig()); MessageBox.Show("บันทึกแล้ว"); };
         btnLoad.Click += (_, _) => SetConfig(Config.ConfigManager.Load());
         btnPanel.Controls.AddRange(new Control[] { btnSave, btnLoad });

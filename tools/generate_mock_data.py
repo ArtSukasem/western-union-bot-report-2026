@@ -97,6 +97,36 @@ ob["May26"].append(ob_row("202May", "2026-05-15", "10:00:00", 200000, "Veera", "
                           "2020000000202", occ="Self-Employed"))
 
 
+# ---------------- Rule 202 cross-direction — IB/OB evaluated independently ----------------
+# Person 2020000000901: OB steady 50,000/mo (avg 50k -> thr 150k), May OB 60,000 -> no breach.
+#                        IB steady 40,000/mo (avg 40k -> thr 120k), May IB 200,000 -> breach.
+# Under the old pooled-by-PersonId logic this person would NOT have flagged at all
+# (combined avg 90k/mo -> thr 270k, combined May total 260k < 270k) -- the direction
+# split now catches the IB-only breach that pooling used to mask.
+for code, ym in PRIOR:
+    ob[code].append(ob_row(f"901OB{code}", f"{ym}-15", "10:00:00", 50000, "Piti", "Cross",
+                           "2020000000901", occ="Self-Employed"))
+    ib[code].append(ib_row(f"901IB{code}", f"{ym}-10", "09:00:00", 40000, "Piti", "Cross",
+                           "2020000000901", occ="Self-Employed"))
+ob["May26"].append(ob_row("901OBMay", "2026-05-15", "10:00:00", 60000, "Piti", "Cross",
+                          "2020000000901", occ="Self-Employed"))
+ib["May26"].append(ib_row("901IBMay", "2026-05-10", "09:00:00", 200000, "Piti", "Cross",
+                          "2020000000901", occ="Self-Employed"))
+
+# Person 2020000000902: IB and OB independently breach -> one merged SbeRecord (both directions).
+# IB steady 30,000/mo (avg 30k -> thr 90k), May IB 100,000 -> breach.
+# OB steady 30,000/mo (avg 30k -> thr 90k), May OB 100,000 -> breach.
+for code, ym in PRIOR:
+    ib[code].append(ib_row(f"902IB{code}", f"{ym}-11", "09:30:00", 30000, "Somchai", "Both",
+                           "2020000000902", occ="Self-Employed"))
+    ob[code].append(ob_row(f"902OB{code}", f"{ym}-16", "10:30:00", 30000, "Somchai", "Both",
+                           "2020000000902", occ="Self-Employed"))
+ib["May26"].append(ib_row("902IBMay", "2026-05-11", "09:30:00", 100000, "Somchai", "Both",
+                          "2020000000902", occ="Self-Employed"))
+ob["May26"].append(ob_row("902OBMay", "2026-05-16", "10:30:00", 100000, "Somchai", "Both",
+                          "2020000000902", occ="Self-Employed"))
+
+
 # ---------------- Rule 203-retail — income/occupation mismatch ----------------
 # Receiver 2030000000203: "Domestic Helper" expect 12,000 -> thr 36,000 over rolling window.
 # 20,000 in each of Mar/Apr/May -> window total 60,000 > 36,000, with a reporting-month txn.

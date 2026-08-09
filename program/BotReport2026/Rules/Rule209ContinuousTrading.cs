@@ -20,12 +20,10 @@ public class Rule209ContinuousTrading : IRuleEngine
         // Group by personId, then by date
         var byPerson = withTime.GroupBy(t => t.PersonId.Trim(), StringComparer.OrdinalIgnoreCase);
 
-        foreach (var personGroup in byPerson)
+        List<RspTransaction> CollectFlagged(IEnumerable<RspTransaction> directionTxns)
         {
-            var byDay = personGroup.GroupBy(t => t.TransactionDate!.Value.Date);
-            bool personFlagged = false;
-            List<RspTransaction> flaggedTxns = new();
-
+            var flagged = new List<RspTransaction>();
+            var byDay = directionTxns.GroupBy(t => t.TransactionDate!.Value.Date);
             foreach (var dayGroup in byDay)
             {
                 var dayTxns = dayGroup.ToList();
@@ -38,13 +36,24 @@ public class Rule209ContinuousTrading : IRuleEngine
 
                 double spanHours = (times.Last() - times.First()).TotalHours;
                 if (spanHours >= hours)
-                {
-                    personFlagged = true;
-                    flaggedTxns.AddRange(dayTxns);
-                }
+                    flagged.AddRange(dayTxns);
             }
+            return flagged;
+        }
 
-            if (!personFlagged || flaggedTxns.Count == 0) continue;
+        foreach (var personGroup in byPerson)
+        {
+            var ibTxns = personGroup.Where(t => t.Direction == "IB").ToList();
+            var obTxns = personGroup.Where(t => t.Direction == "OB").ToList();
+
+            var ibFlagged = CollectFlagged(ibTxns);
+            var obFlagged = CollectFlagged(obTxns);
+
+            var resolved = DirectionalFlagResolver.Resolve(
+                ibFlagged.Count > 0, ibFlagged,
+                obFlagged.Count > 0, obFlagged);
+            if (resolved == null) continue;
+            var (flaggedTxns, suffix) = resolved.Value;
 
             var first = flaggedTxns[0];
             sbe.Add(new SbeRecord
@@ -55,7 +64,7 @@ public class Rule209ContinuousTrading : IRuleEngine
                 PersonRefId = personGroup.Key,
                 AnomalyDate = flaggedTxns.Min(t => t.TransactionDate),
                 BehaviorType = "209",
-                RuleCode = RuleCode,
+                RuleCode = RuleCode + suffix,
                 MtcnList = string.Join(", ", flaggedTxns.Select(t => t.MTCN).Distinct()),
                 TransactionCount = flaggedTxns.Count,
                 TotalAmount = flaggedTxns.Sum(t => t.Principal)

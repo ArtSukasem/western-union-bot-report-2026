@@ -5,7 +5,10 @@
       "Bash(extract-text \"เงื่อนไขที่เข้าข่ายพฤติกรรมเสี่ยงและต้องราายงาน Dataset 1.1 and 1.2.pptx\")",
       "PowerShell(python -m pip install python-pptx openpyxl pandas --quiet 2>&1)",
       "Bash(ls program/BotReport2026/bin/Debug/)",
-      "Bash(cat program/BotReport2026/bin/Debug/net8.0-windows/config.json)"
+      "Bash(cat program/BotReport2026/bin/Debug/net8.0-windows/config.json)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git reset *)"
     ]
   }
 }

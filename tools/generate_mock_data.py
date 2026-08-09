@@ -204,8 +204,8 @@ txn_may = [
             60000, "Income proof required"),     # status not EDD-passed -> filtered out
 ]
 print("\nTxn reports:")
-write_txn(os.path.join(TXN_DIR, "Transaction-Report May26.xls.xlsx"), txn_may)
-print(f"  wrote Transaction-Report May26.xls.xlsx ({len(txn_may)} rows; 2 qualify)")
+write_txn(os.path.join(TXN_DIR, "Transaction-Report May26.xls"), txn_may)
+print(f"  wrote Transaction-Report May26.xls ({len(txn_may)} rows; 2 qualify)")
 
 # Prior months: benign online activity (none qualify) so the folder mirrors RSP history.
 for code, ym in PRIOR:
@@ -215,8 +215,8 @@ for code, ym in PRIOR:
         txn_row(f"{ym}-18 14:00", f"{code}02", "RECEIVED", "Online Benign B",
                 "7020000000002", 7000, "OK"),
     ]
-    write_txn(os.path.join(TXN_DIR, f"Transaction-Report {code}.xls.xlsx"), rows)
-    print(f"  wrote Transaction-Report {code}.xls.xlsx ({len(rows)} rows; 0 qualify)")
+    write_txn(os.path.join(TXN_DIR, f"Transaction-Report {code}.xls"), rows)
+    print(f"  wrote Transaction-Report {code}.xls ({len(rows)} rows; 0 qualify)")
 
 
 # ================= Seed sanction scenarios (Rule 101) =================

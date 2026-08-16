@@ -45,7 +45,7 @@ public static class InputFolderScanner
     }
 
     /// <summary>Counts data rows (excluding header rows) using EPPlus dimension only.</summary>
-    public static int CountDataRows(string path, int headerRows)
+    public static int CountExcelDataRows(string path, int headerRows)
     {
         try
         {
@@ -57,24 +57,31 @@ public static class InputFolderScanner
         catch { return 0; }
     }
 
-    /// <summary>Scans RSP folder; returns (inbound, outbound) lists.</summary>
-    public static (List<InputFile> inbound, List<InputFile> outbound) ScanRsp(string dir)
+    /// <summary>
+    /// Scans the inbound and outbound RSP folders; returns (inbound, outbound) lists.
+    /// Direction comes from the folder the file sits in — the file name is not inspected.
+    /// </summary>
+    public static (List<InputFile> inbound, List<InputFile> outbound) ScanRsp(
+        string inboundDir, string outboundDir) =>
+        (ScanRspFolder(inboundDir), ScanRspFolder(outboundDir));
+
+    /// <summary>Returns every .csv in the folder as an InputFile (Excel lock files skipped).</summary>
+    private static List<InputFile> ScanRspFolder(string dir)
     {
-        var inbound = new List<InputFile>();
-        var outbound = new List<InputFile>();
-        if (!Directory.Exists(dir)) return (inbound, outbound);
+        var result = new List<InputFile>();
+        if (!Directory.Exists(dir)) return result;
 
         foreach (var path in Directory.GetFiles(dir))
         {
             string name = Path.GetFileName(path);
             if (name.StartsWith("~$")) continue; // skip Excel temp locks
+            if (!Path.GetExtension(path).Equals(".csv", StringComparison.OrdinalIgnoreCase)) continue;
 
-            if (name.StartsWith("RSP_Inbound", StringComparison.OrdinalIgnoreCase))
-                inbound.Add(MakeInputFile(path, headerRows: 2));
-            else if (name.StartsWith("RSP_Outbound", StringComparison.OrdinalIgnoreCase))
-                outbound.Add(MakeInputFile(path, headerRows: 2));
+            var month = ParseMonthFromName(name);
+            // RSP CSV has a single header row
+            result.Add(new InputFile(path, month, CsvUtil.CountDataRows(path, headerRows: 1)));
         }
-        return (inbound, outbound);
+        return result;
     }
 
     /// <summary>Scans Transaction Report folder.</summary>
@@ -88,15 +95,9 @@ public static class InputFolderScanner
             string name = Path.GetFileName(path);
             if (name.StartsWith("~$")) continue;
             if (name.StartsWith("Transaction-Report", StringComparison.OrdinalIgnoreCase))
-                result.Add(MakeInputFile(path, headerRows: 3));
+                result.Add(new InputFile(path, ParseMonthFromName(name),
+                    CountExcelDataRows(path, headerRows: 3)));
         }
         return result;
-    }
-
-    private static InputFile MakeInputFile(string path, int headerRows)
-    {
-        var month = ParseMonthFromName(Path.GetFileName(path));
-        int rows = CountDataRows(path, headerRows);
-        return new InputFile(path, month, rows);
     }
 }

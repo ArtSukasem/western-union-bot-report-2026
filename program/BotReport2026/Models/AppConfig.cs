@@ -2,6 +2,9 @@ namespace BotReport2026.Models;
 
 public class AppConfig
 {
+    // RSP input — cl2 Transaction_Status values kept. Empty list = no filtering.
+    public List<string> RspIncludedStatuses { get; set; } = new() { "PAID" };
+
     // Rule 202
     public int Rule202PriorMonths { get; set; } = 6;
     public decimal Rule202Multiplier { get; set; } = 3m;

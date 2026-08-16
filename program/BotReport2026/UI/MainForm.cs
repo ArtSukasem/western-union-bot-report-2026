@@ -21,8 +21,10 @@ public partial class MainForm : Form
         Path.Combine(RepoRoot, "mapper", "list_of_occupation_expected_monthly_income.xlsx");
     public static string OutputDirectory =>
         Path.Combine(RepoRoot, "report-results");
-    public static string InputRspDir =>
-        Path.Combine(RepoRoot, "input-rsp");
+    public static string InputRspInboundDir =>
+        Path.Combine(RepoRoot, "input-rsp-inbound");
+    public static string InputRspOutboundDir =>
+        Path.Combine(RepoRoot, "input-rsp-outbound");
     public static string InputTxnReportDir =>
         Path.Combine(RepoRoot, "input-transaction-report");
 
@@ -31,7 +33,7 @@ public partial class MainForm : Form
     {
         foreach (var dir in new[]
         {
-            InputRspDir, InputTxnReportDir,
+            InputRspInboundDir, InputRspOutboundDir, InputTxnReportDir,
             Path.Combine(RepoRoot, "lookups"),
             Path.Combine(RepoRoot, "mapper"),
             OutputDirectory

@@ -49,13 +49,13 @@ public class ReportEngine
 
         // 3. Reporting month RSP
         Log("กำลังโหลด RSP เดือนที่รายงาน...");
-        var reportingRsp = LoadRsp(p.ReportingMonthInboundFiles, p.ReportingMonthOutboundFiles, Log);
+        var reportingRsp = LoadRsp(p.ReportingMonthInboundFiles, p.ReportingMonthOutboundFiles, p.Config, Log);
         Log($"โหลด RSP รายงาน: {reportingRsp.Count:N0} รายการ");
         ct.ThrowIfCancellationRequested();
 
         // 4. Historical RSP
         Log("กำลังโหลด RSP ย้อนหลัง...");
-        var historicalRsp = LoadRsp(p.HistoricalInboundFiles, p.HistoricalOutboundFiles, Log);
+        var historicalRsp = LoadRsp(p.HistoricalInboundFiles, p.HistoricalOutboundFiles, p.Config, Log);
         Log($"โหลด RSP ย้อนหลัง: {historicalRsp.Count:N0} รายการ");
         ct.ThrowIfCancellationRequested();
 
@@ -133,21 +133,26 @@ public class ReportEngine
     }
 
     private static List<RspTransaction> LoadRsp(
-        List<string> ibFiles, List<string> obFiles, Action<string> log)
+        List<string> ibFiles, List<string> obFiles, AppConfig config, Action<string> log)
     {
+        var statuses = config.RspIncludedStatuses ?? new List<string>();
         var result = new List<RspTransaction>();
-        foreach (var f in ibFiles)
+
+        void LoadInto(IEnumerable<string> files, string direction)
         {
-            var rows = RspReader.ReadFile(f, "IB");
-            result.AddRange(rows);
-            log($"  IB {Path.GetFileName(f)}: {rows.Count} รายการ");
+            foreach (var f in files)
+            {
+                var read = RspReader.Read(f, direction, statuses);
+                result.AddRange(read.Rows);
+                string skipped = read.SkippedByStatus > 0
+                    ? $" (ข้าม {read.SkippedByStatus:N0} รายการ สถานะไม่อยู่ใน {string.Join("/", statuses)})"
+                    : "";
+                log($"  {direction} {Path.GetFileName(f)}: {read.Rows.Count:N0} รายการ{skipped}");
+            }
         }
-        foreach (var f in obFiles)
-        {
-            var rows = RspReader.ReadFile(f, "OB");
-            result.AddRange(rows);
-            log($"  OB {Path.GetFileName(f)}: {rows.Count} รายการ");
-        }
+
+        LoadInto(ibFiles, "IB");
+        LoadInto(obFiles, "OB");
         return result;
     }
 }

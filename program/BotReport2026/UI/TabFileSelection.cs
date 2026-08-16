@@ -35,7 +35,8 @@ public class TabFileSelection : UserControl
     /// <summary>Scans the input folders and stores all files. Returns the latest month found.</summary>
     public DateTime? LoadFromFolders()
     {
-        var (ib, ob) = InputFolderScanner.ScanRsp(MainForm.InputRspDir);
+        var (ib, ob) = InputFolderScanner.ScanRsp(
+            MainForm.InputRspInboundDir, MainForm.InputRspOutboundDir);
         _allIb = ib;
         _allOb = ob;
         _allTxn = InputFolderScanner.ScanTxnReport(MainForm.InputTxnReportDir);
@@ -159,7 +160,8 @@ public class TabFileSelection : UserControl
             Margin = new Padding(4, 6, 20, 0)
         };
         var btnReload = new Button { Text = "🔄 โหลดใหม่", AutoSize = true };
-        var btnOpenRsp = new Button { Text = "📂 เปิดโฟลเดอร์ RSP", AutoSize = true };
+        var btnOpenRspIb = new Button { Text = "📂 เปิดโฟลเดอร์ RSP Inbound", AutoSize = true };
+        var btnOpenRspOb = new Button { Text = "📂 เปิดโฟลเดอร์ RSP Outbound", AutoSize = true };
         var btnOpenTxn = new Button { Text = "📂 เปิดโฟลเดอร์ Transaction Report", AutoSize = true };
 
         btnReload.Click += (_, _) =>
@@ -167,15 +169,18 @@ public class TabFileSelection : UserControl
             LoadFromFolders();
             ApplyReportingMonth(_currentReportingMonth);
         };
-        btnOpenRsp.Click += (_, _) => OpenFolder(MainForm.InputRspDir);
+        btnOpenRspIb.Click += (_, _) => OpenFolder(MainForm.InputRspInboundDir);
+        btnOpenRspOb.Click += (_, _) => OpenFolder(MainForm.InputRspOutboundDir);
         btnOpenTxn.Click += (_, _) => OpenFolder(MainForm.InputTxnReportDir);
 
-        topBar.Controls.AddRange(new Control[] { _lblReportMonth, btnReload, btnOpenRsp, btnOpenTxn });
+        topBar.Controls.AddRange(new Control[]
+            { _lblReportMonth, btnReload, btnOpenRspIb, btnOpenRspOb, btnOpenTxn });
         layout.Controls.Add(topBar);
 
         var hint = new Label
         {
-            Text = "วางไฟล์ในโฟลเดอร์ input-rsp/ และ input-transaction-report/ โปรแกรมจะโหลดและแยกเดือนให้อัตโนมัติ",
+            Text = "วางไฟล์ในโฟลเดอร์ input-rsp-inbound/, input-rsp-outbound/ และ input-transaction-report/ " +
+                   "โปรแกรมจะโหลดและแยกเดือนให้อัตโนมัติ (ชื่อไฟล์ต้องมีเดือน เช่น May26)",
             Dock = DockStyle.Fill,
             AutoSize = true,
             ForeColor = Color.DimGray,

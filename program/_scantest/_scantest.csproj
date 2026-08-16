@@ -10,5 +10,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\BotReport2026\Readers\InputFolderScanner.cs" />
+    <Compile Include="..\BotReport2026\Readers\CsvUtil.cs" />
+    <Compile Include="..\BotReport2026\Readers\RspReader.cs" />
+    <Compile Include="..\BotReport2026\Models\RspTransaction.cs" />
   </ItemGroup>
 </Project>

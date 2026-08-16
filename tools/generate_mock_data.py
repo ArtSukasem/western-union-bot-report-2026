@@ -14,8 +14,11 @@ import os
 import openpyxl
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RSP_DIR = os.path.join(ROOT, "input-rsp")
+RSP_IB_DIR = os.path.join(ROOT, "input-rsp-inbound")
+RSP_OB_DIR = os.path.join(ROOT, "input-rsp-outbound")
 TXN_DIR = os.path.join(ROOT, "input-transaction-report")
+for _d in (RSP_IB_DIR, RSP_OB_DIR, TXN_DIR):
+    os.makedirs(_d, exist_ok=True)
 LOOKUP = os.path.join(ROOT, "lookups", "saction_list.xlsx")
 
 # Reporting month + 6 prior months. (code used in file names, yyyy-mm prefix for dates)
@@ -189,9 +192,9 @@ ob["May26"].append(ob_row("1010004", "2026-05-06", "10:20:00", 15000, "JOHN", "S
 # ================= write RSP files =================
 print("RSP files:")
 for code, _ in ALL_MONTHS:
-    write_rsp(os.path.join(RSP_DIR, f"RSP_Inbound_{code}.xlsx"), IB_HEADER, ib[code])
+    write_rsp(os.path.join(RSP_IB_DIR, f"RSP_Inbound_{code}.xlsx"), IB_HEADER, ib[code])
 for code, _ in ALL_MONTHS:
-    write_rsp(os.path.join(RSP_DIR, f"RSP_Outbound_{code}.xlsx"), OB_HEADER, ob[code])
+    write_rsp(os.path.join(RSP_OB_DIR, f"RSP_Outbound_{code}.xlsx"), OB_HEADER, ob[code])
 
 
 # ================= Transaction Report (Rule 203-online) =================

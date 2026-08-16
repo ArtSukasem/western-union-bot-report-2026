@@ -21,7 +21,8 @@ Two datasets are produced each month (due: Data Date + 15 days):
 
 | Directory | File Pattern | Description |
 |---|---|---|
-| `input-rsp/` | `RSP_Inbound_Mmmyy.xlsx`, `RSP_Outbound_Mmmyy.xlsx` | Money-transfer transactions (121 columns). Covers both retail and online channels. |
+| `input-rsp-inbound/` | `RSP_Inbound_Mmmyy.xlsx` | Inbound (receive money) transactions (121 columns). Direction comes from the folder, not the file name — any file here is read as inbound. |
+| `input-rsp-outbound/` | `RSP_Outbound_Mmmyy.xlsx` | Outbound (send money) transactions (121 columns). Direction comes from the folder. Together these cover both retail and online channels. |
 | `input-transaction-report/` | `Transaction-Report Mmmyy.xls` | Online channel transactions (30 columns). Used only for rule 203-online. |
 | `lookups/saction-list.xlsx` | — | Sanction list with two sheets: **UNSanctionList** (cl5=FIRST_NAME, cl10=NUMBER) and **THSanctionList** / CFR (cl10=IDENTITY_ID). |
 | `lookups/ข้อมูลบุคคลอาชญากรรมทางการเงินและพฤติกรรมลูกค้าหน้าร้านน่าสงสัย.xlsx` | — | Sheet **พฤติกรรมลูกค้าหน้าร้านน่าสงสัย** (MTCN, Firstname, Lastname, IDnumber); sheet **บุคคลอาชญากรรมทางการเงิน** (Firstname, Lastname). |

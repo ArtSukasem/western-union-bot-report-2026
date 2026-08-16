@@ -1,30 +1,52 @@
 using BotReport2026.Models;
-using OfficeOpenXml;
 
 namespace BotReport2026.Readers;
 
 public static class RspReader
 {
+    /// <summary>Statuses kept when the caller does not specify a filter.</summary>
+    public static readonly string[] DefaultIncludedStatuses = { "PAID" };
+
+    /// <summary>Rows read minus rows kept, split by the reason they were dropped.</summary>
+    public record ReadResult(List<RspTransaction> Rows, int SkippedByStatus);
+
     /// <summary>
-    /// Reads an RSP file (Inbound or Outbound).
+    /// Reads an RSP CSV file (Inbound or Outbound).
     /// RSP file structure: Row1=field names (single header row), Data from Row2.
     /// Columns are indexed by position (cl1..cl121); header text is ignored.
     /// </summary>
-    public static List<RspTransaction> ReadFile(string filePath, string direction)
-    {
-        var results = new List<RspTransaction>();
-        using var pkg = new ExcelPackage(new FileInfo(filePath));
-        var ws = pkg.Workbook.Worksheets[0];
-        int totalRows = ws.Dimension?.Rows ?? 0;
-        if (totalRows < 2) return results;
+    public static List<RspTransaction> ReadFile(
+        string filePath, string direction, ICollection<string>? includedStatuses = null) =>
+        Read(filePath, direction, includedStatuses).Rows;
 
-        // Data starts at row 2 (1-based) — one header row
-        for (int row = 2; row <= totalRows; row++)
+    /// <summary>Same as <see cref="ReadFile"/> but also reports how many rows the status filter dropped.</summary>
+    public static ReadResult Read(
+        string filePath, string direction, ICollection<string>? includedStatuses = null)
+    {
+        var statuses = new HashSet<string>(
+            includedStatuses ?? DefaultIncludedStatuses, StringComparer.OrdinalIgnoreCase);
+        statuses.RemoveWhere(string.IsNullOrWhiteSpace);
+
+        var results = new List<RspTransaction>();
+        int skippedByStatus = 0;
+        bool isHeader = true;
+
+        foreach (var row in CsvUtil.ReadRows(filePath))
         {
-            string Get(int col) => ws.Cells[row, col].Text?.Trim() ?? "";
+            if (isHeader) { isHeader = false; continue; }
+
+            string Get(int col) => col <= row.Length ? CsvUtil.Clean(row[col - 1]) : "";
 
             string mtcn = Get(1); // cl1
             if (string.IsNullOrWhiteSpace(mtcn)) continue;
+
+            // cl2 = Transaction_Status (PAID / CANCELLED / REFUNDED / UNPAID).
+            // An empty status list means "no filtering".
+            if (statuses.Count > 0 && !statuses.Contains(Get(2)))
+            {
+                skippedByStatus++;
+                continue;
+            }
 
             var txn = new RspTransaction
             {
@@ -68,7 +90,7 @@ public static class RspReader
             results.Add(txn);
         }
 
-        return results;
+        return new ReadResult(results, skippedByStatus);
     }
 
     private static bool IsOther(string occ) =>
@@ -79,10 +101,14 @@ public static class RspReader
     public static DateTime? ParseDate(string s)
     {
         if (string.IsNullOrWhiteSpace(s)) return null;
-        string[] formats = { "yyyy-MM-dd", "dd-MM-yyyy", "dd/MM/yyyy", "M/d/yyyy", "yyyy/MM/dd" };
-        if (DateTime.TryParseExact(s, formats, null,
+        // RSP dates are MM/dd/yyyy — dd/MM/yyyy is deliberately absent because it
+        // would swallow the same strings and silently shift day/month.
+        string[] formats = { "MM/dd/yyyy", "M/d/yyyy", "yyyy-MM-dd", "yyyy/MM/dd", "dd-MM-yyyy" };
+        var invariant = System.Globalization.CultureInfo.InvariantCulture;
+        if (DateTime.TryParseExact(s, formats, invariant,
             System.Globalization.DateTimeStyles.None, out var dt)) return dt;
-        if (DateTime.TryParse(s, out dt)) return dt;
+        if (DateTime.TryParse(s, invariant,
+            System.Globalization.DateTimeStyles.None, out dt)) return dt;
         return null;
     }
 

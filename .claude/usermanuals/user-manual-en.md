@@ -21,14 +21,15 @@ by June 15).
    (`dotnet run --project program/BotReport2026/BotReport2026.csproj`).
 2. Launch **BotReport2026.exe**. On first launch it automatically creates
    the folders it needs next to itself:
-   - `input-rsp/`
+   - `input-rsp-inbound/`
+   - `input-rsp-outbound/`
    - `input-transaction-report/`
    - `lookups/`
    - `mapper/`
    - `report-results/`
 3. The app must stay in the same relative position inside the folder
    structure it was built/extracted into — don't move the `.exe` on its own
-   to a different folder, or it won't find `input-rsp/`, `lookups/`, etc.
+   to a different folder, or it won't find `input-rsp-inbound/`, `lookups/`, etc.
 
 No installer, no admin rights, no internet connection required.
 
@@ -38,26 +39,35 @@ No installer, no admin rights, no internet connection required.
 
 | Folder | What goes here |
 |---|---|
-| `input-rsp/` | This month's and prior months' `RSP_Inbound_*` / `RSP_Outbound_*` files |
+| `input-rsp-inbound/` | This month's and prior months' **inbound** (received money) RSP files |
+| `input-rsp-outbound/` | This month's and prior months' **outbound** (sent money) RSP files |
 | `input-transaction-report/` | This month's (and ideally prior months') `Transaction-Report *` files (online channel) |
 | `lookups/` | `saction_list.xlsx` (UN + TH sanction lists), the financial-crime / suspicious-retail-customer list |
 | `mapper/` | The occupation → expected monthly income mapping file |
 | `report-results/` | Where `DS_SBE_yyyyMM.xlsx` and `DS_SAE_yyyyMM.xlsx` are written after a run |
 
-**File naming**: files are matched by **name prefix only** — the file
-extension doesn't matter (`.xlsx`, no extension, etc. all work), as long as
-the content is a real Excel file and the name starts with the right prefix:
+**RSP direction comes from the folder, not the file name.** Every file you
+put in `input-rsp-inbound/` is read as inbound, and every file in
+`input-rsp-outbound/` as outbound — so you can rename RSP files however you
+like. Put each file in the right folder; that is the only thing that decides
+its direction. The file extension doesn't matter (`.xlsx`, no extension, etc.
+all work) as long as the content is a real Excel file.
 
-- `RSP_Inbound...` → inbound (received money)
-- `RSP_Outbound...` → outbound (sent money)
-- `Transaction-Report...` → online channel transactions
+Transaction Report files are still matched by name prefix
+(`Transaction-Report...`) inside `input-transaction-report/`.
 
-The month is read out of the filename itself (a 3-letter month + 2-digit
-year somewhere in the name, e.g. `May26`, `Apr_26`). If the app can't find a
-recognizable month in a filename, it's treated conservatively as a
-**historical** file, not the reporting month.
+**The month is still read out of the filename** (a 3-letter month + 2-digit
+year somewhere in the name, e.g. `May26`, `Apr_26`) — so keep the month in
+the name even when you rename a file. If the app can't find a recognizable
+month in a filename, it's treated conservatively as a **historical** file,
+not the reporting month.
 
-**Keep several months of RSP history in `input-rsp/`.** Two rules need it:
+> **Upgrading from an earlier version?** RSP files used to live in a single
+> `input-rsp/` folder. Move your `RSP_Inbound_*` files into
+> `input-rsp-inbound/` and your `RSP_Outbound_*` files into
+> `input-rsp-outbound/`. The old folder is no longer read at all.
+
+**Keep several months of RSP history in both RSP folders.** Two rules need it:
 Rule 202 needs up to 6 prior months by default, Rule 203 (retail) needs 3.
 Files for months you're not reporting on don't need to be removed — the app
 sorts everything into "reporting month" vs "historical" for you.
@@ -129,8 +139,9 @@ error if the file is missing entirely, not just outdated).
 
 ## 4. Monthly workflow, start to finish
 
-1. Copy this month's RSP Inbound/Outbound files (plus prior months' files
-   already sitting in `input-rsp/` from previous runs) into `input-rsp/`.
+1. Copy this month's RSP Inbound file into `input-rsp-inbound/` and this
+   month's RSP Outbound file into `input-rsp-outbound/`, leaving prior
+   months' files from previous runs in place.
 2. Copy this month's Transaction Report file into
    `input-transaction-report/`.
 3. Confirm `lookups/` and `mapper/` still have current versions of the
@@ -186,7 +197,8 @@ for the full technical list if you need exact field names).
 |---|---|
 | Warning: "กรุณาเลือกไฟล์อย่างน้อย 1 ไฟล์ก่อนรัน" (please select at least one file) when clicking Run | No files were found for the **reporting month** specifically. Check the filenames contain a recognizable month code, and that Tab 3's month picker matches. |
 | A reference file shows ❌ on Tab 1 | The file is missing from `lookups/` or `mapper/`, or was renamed. Use the 📂 folder buttons to check, drop the correct file in, then 🔄 Reload. |
-| Rule 202 or 203 isn't flagging anyone you expected | Check `input-rsp/` actually has enough **prior months'** files present — these rules need rolling history, not just the reporting month. |
+| Rule 202 or 203 isn't flagging anyone you expected | Check the two RSP folders actually have enough **prior months'** files present — these rules need rolling history, not just the reporting month. |
+| An RSP file is listed under the wrong direction | It's in the wrong folder. Direction is decided purely by whether the file sits in `input-rsp-inbound/` or `input-rsp-outbound/` — the file name is not consulted. Move it and 🔄 Reload. |
 | Wrong reporting month was auto-detected | Change it manually with the month picker on Tab 3 — Tab 1's file lists re-sort automatically to match. |
 | A setting change on Tab 2 doesn't seem to apply | Make sure you clicked 💾 Save (or just Run — settings save automatically at the start of every run). |
 | App can't find its folders / crashes on startup | The `.exe` was likely moved out of its original folder structure. Re-extract from the `Releases/` zip rather than copying just the `.exe`. |

@@ -1,12 +1,13 @@
-namespace BotReport2026.UI;
+﻿namespace BotReport2026.UI;
 
 public class TabRunOutput : UserControl
 {
     private readonly MainForm _owner;
     private DateTimePicker _dtpMonth;
-    private Button _btnRun, _btnCancel, _btnOpenFolder;
+    private Button _btnRun, _btnCancel, _btnOpenFolder, _btnClearResults;
     private RichTextBox _rtbLog;
     private ProgressBar _progressBar;
+    private Label _lblProgress;
     private Label _lblOutputPaths;
     private string _lastOutputDir = "";
 
@@ -95,12 +96,30 @@ public class TabRunOutput : UserControl
 
         _progressBar = new ProgressBar
         {
-            Style = ProgressBarStyle.Marquee,
-            Width = 400,
+            Style = ProgressBarStyle.Continuous,
+            Minimum = 0,
+            Maximum = 100,
+            Width = 340,
             Height = 22,
             Visible = false
         };
         bottomPanel.Controls.Add(_progressBar);
+
+        // Fixed width: an AutoSize label would grow with the stage text and shove
+        // the buttons around every time the stage changes.
+        _lblProgress = new Label
+        {
+            Width = 330,
+            Height = 22,
+            AutoSize = false,
+            AutoEllipsis = true,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Font = new Font("Tahoma", 9f, FontStyle.Bold),
+            ForeColor = Color.FromArgb(0, 90, 158),
+            Margin = new Padding(6, 3, 12, 0),
+            Visible = false
+        };
+        bottomPanel.Controls.Add(_lblProgress);
 
         _btnOpenFolder = new Button { Text = "📂 เปิดโฟลเดอร์ผลลัพธ์", AutoSize = true, Enabled = false };
         _btnOpenFolder.Click += (_, _) =>
@@ -110,7 +129,88 @@ public class TabRunOutput : UserControl
         };
         bottomPanel.Controls.Add(_btnOpenFolder);
 
+        _btnClearResults = new Button
+        {
+            Text = "🗑 ล้างผลลัพธ์",
+            AutoSize = true,
+            Margin = new Padding(5, 0, 0, 0)
+        };
+        _btnClearResults.Click += (_, _) => ClearResults();
+        bottomPanel.Controls.Add(_btnClearResults);
+
         mainPanel.Controls.Add(bottomPanel, 0, 3);
+    }
+
+    /// <summary>
+    /// Deletes every file in the output folder. Nested folders are left alone — the
+    /// engine only ever writes at the top level, so anything deeper was put there by
+    /// hand and is not ours to remove.
+    /// </summary>
+    private void ClearResults()
+    {
+        string dir = MainForm.OutputDirectory;
+
+        var files = Directory.Exists(dir) ? Directory.GetFiles(dir) : Array.Empty<string>();
+        if (files.Length == 0)
+        {
+            MessageBox.Show($"ไม่มีไฟล์ผลลัพธ์ให้ลบ\n\n{dir}",
+                "ล้างผลลัพธ์", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        // A rerun regenerates DS_SBE, but a DS_SAE workbook may already carry hand-typed
+        // EDD answers, so this confirms before deleting and defaults to No.
+        var confirm = MessageBox.Show(
+            $"ลบไฟล์ทั้งหมด {files.Length} ไฟล์ในโฟลเดอร์ผลลัพธ์หรือไม่?\n\n{dir}\n\n" +
+            "ไฟล์จะถูกลบถาวร ไม่ผ่านถังรีไซเคิล และกู้คืนไม่ได้",
+            "ยืนยันการล้างผลลัพธ์",
+            MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
+        if (confirm != DialogResult.Yes) return;
+
+        int deleted = 0;
+        var failed = new List<string>();
+        foreach (var f in files)
+        {
+            try
+            {
+                File.Delete(f);
+                deleted++;
+            }
+            catch (Exception ex)
+            {
+                failed.Add($"{Path.GetFileName(f)} — {ex.Message}");
+            }
+        }
+
+        AppendLog($"🗑 ล้างผลลัพธ์: ลบแล้ว {deleted} จาก {files.Length} ไฟล์");
+        foreach (var f in failed) AppendLog($"  ⚠ ลบไม่สำเร็จ: {f}");
+
+        if (failed.Count > 0)
+        {
+            MessageBox.Show(
+                $"ลบได้ {deleted} ไฟล์ แต่ลบไม่สำเร็จ {failed.Count} ไฟล์\n" +
+                "(มักเกิดจากไฟล์ยังเปิดค้างใน Excel — ปิดไฟล์แล้วลองใหม่)\n\n" +
+                string.Join(Environment.NewLine, failed),
+                "ล้างผลลัพธ์ไม่ครบ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        // Nothing left to point at, so put the label back to its pre-run state.
+        RefreshOutputTarget();
+    }
+
+    /// <summary>
+    /// Points the label back at the results folder of the current working folder. Called on
+    /// startup and whenever the working folder changes, so it never advertises a path under
+    /// a folder the app has stopped using.
+    /// </summary>
+    public void RefreshOutputTarget()
+    {
+        if (InvokeRequired) { Invoke(RefreshOutputTarget); return; }
+        _lastOutputDir = "";
+        _lblOutputPaths.Text = "ผลลัพธ์จะถูกบันทึกที่: " + MainForm.OutputDirectory;
+        _lblOutputPaths.ForeColor = Color.DimGray;
+        _btnOpenFolder.Enabled = false;
     }
 
     public void SetReportingMonth(DateTime month)
@@ -135,7 +235,30 @@ public class TabRunOutput : UserControl
         if (InvokeRequired) { Invoke(() => SetRunning(running)); return; }
         _btnRun.Enabled = !running;
         _btnCancel.Enabled = running;
+        _btnClearResults.Enabled = !running;
         _progressBar.Visible = running;
+        _lblProgress.Visible = running;
+        if (running) SetProgress(0, "กำลังเริ่ม...");
+    }
+
+    /// <summary>Moves the bar to <paramref name="percent"/> (0-100) and names the stage beside it.</summary>
+    public void SetProgress(int percent, string stage)
+    {
+        if (InvokeRequired) { Invoke(() => SetProgress(percent, stage)); return; }
+
+        int value = Math.Clamp(percent, _progressBar.Minimum, _progressBar.Maximum);
+        // Windows animates the bar towards a new value, so it lags behind the number in the
+        // label. Overshooting by one and stepping back skips the animation.
+        if (value < _progressBar.Maximum)
+        {
+            _progressBar.Value = value + 1;
+            _progressBar.Value = value;
+        }
+        else
+        {
+            _progressBar.Value = value;
+        }
+        _lblProgress.Text = $"{value}%   {stage}";
     }
 
     public void SetOutputPaths(string sbePath, string saePath)

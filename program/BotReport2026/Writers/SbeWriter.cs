@@ -1,64 +1,61 @@
 using BotReport2026.Models;
-using OfficeOpenXml;
-using OfficeOpenXml.Style;
 
 namespace BotReport2026.Writers;
 
+/// <summary>
+/// Writes DS_SBE (Data Set 1.1) in the 23-field layout from requirements v3,
+/// one row per MTCN, straight to the .csv the ธปท. upload takes.
+///
+/// Unlike DS_SAE there is nothing for staff to fill in here — every field is
+/// derived — so there is no intermediate .xlsx step.
+/// </summary>
 public static class SbeWriter
 {
-    private static readonly string[] Headers =
+    /// <summary>
+    /// Field names 1–23, in spec order. Reference only — the submission CSV carries
+    /// <b>no header row</b>, so these are never written out.
+    /// </summary>
+    public static readonly string[] Headers =
     {
-        "งวดข้อมูล", "เลขที่อ้างอิง", "ประเภทบุคคล", "Flag_ประเภทบุคคล",
-        "คำนำหน้า", "ชื่อ", "นามสกุล", "เลขที่อ้างอิงบุคคล",
-        "รายได้ต่อเดือน", "รายละเอียดบัญชี", "Flag_บัญชีเงินฝาก", "Flag_e-Money",
-        "วันที่พบความผิดปกติ", "ประเภทพฤติกรรม", "รายการธุรกรรม (MTCN)",
-        "จำนวนครั้ง", "ยอดเงินรวม"
+        "รหัสสถาบัน",
+        "งวดข้อมูล",
+        "เลขที่อ้างอิง",
+        "ลักษณะพฤติกรรม",
+        "คำอธิบายพฤติกรรม และเหตุอันควรสงสัย",
+        "ประเภทของเลขที่อ้างอิงบุคคล/นิติบุคคล",
+        "ประเทศที่ออกเลขที่อ้างอิงบุคคล/นิติบุคคล",
+        "เลขที่อ้างอิงบุคคล/นิติบุคคล",
+        "Flag ประเภทบุคคล",
+        "คำนำหน้าชื่อ",
+        "ชื่อ",
+        "ชื่อกลาง",
+        "นามสกุล",
+        "ที่อยู่ปัจจุบัน",
+        "รหัสไปรษณีย์ของที่อยู่ปัจจุบัน",
+        "อาชีพ",
+        "ประเภทธุรกิจหลัก",
+        "รายได้ต่อเดือน",
+        "ทุนจดทะเบียน",
+        "รายละเอียดบัญชีที่พบความผิดปกติ",
+        "Flag บัญชีเงินฝากธนาคาร",
+        "Flag บัญชีเงินอิเล็กทรอนิกส์ (e-Money)",
+        "วันที่พบความผิดปกติ"
     };
 
-    public static void Write(List<SbeRecord> records, string outputPath)
+    /// <summary>Field values 1–23 for one record, in spec order.</summary>
+    public static string[] ToFields(SbeRecord r) => new[]
     {
-        using var pkg = new ExcelPackage();
-        var ws = pkg.Workbook.Worksheets.Add("DS_SBE");
+        r.InstitutionCode, r.DataPeriod, r.ReferenceNo, r.BehaviorType, r.BehaviorDescription,
+        r.IdTypeCode, r.IdIssuerCountryCode, r.PersonRefId, r.FlagPersonType, r.Title,
+        r.FirstName, r.MiddleName, r.LastName, r.Address, r.PostalCode,
+        r.OccupationCode, r.BusinessTypeCode, r.MonthlyIncome, r.RegisteredCapital,
+        r.AccountDetail, r.FlagSavingsAccount, r.FlagEMoney, r.AnomalyDate
+    };
 
-        // Header row
-        for (int i = 0; i < Headers.Length; i++)
-        {
-            ws.Cells[1, i + 1].Value = Headers[i];
-            ws.Cells[1, i + 1].Style.Font.Bold = true;
-            ws.Cells[1, i + 1].Style.Fill.PatternType = ExcelFillStyle.Solid;
-            ws.Cells[1, i + 1].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(68, 114, 196));
-            ws.Cells[1, i + 1].Style.Font.Color.SetColor(System.Drawing.Color.White);
-        }
-
-        // Data rows
-        for (int i = 0; i < records.Count; i++)
-        {
-            var r = records[i];
-            int row = i + 2;
-            ws.Cells[row, 1].Value = r.ReportingPeriod;
-            ws.Cells[row, 2].Value = r.ReferenceNo;
-            ws.Cells[row, 3].Value = r.PersonType;
-            ws.Cells[row, 4].Value = r.FlagPersonType;
-            ws.Cells[row, 5].Value = r.Title;
-            ws.Cells[row, 6].Value = r.FirstName;
-            ws.Cells[row, 7].Value = r.LastName;
-            ws.Cells[row, 8].Value = r.PersonRefId;
-            ws.Cells[row, 9].Value = r.MonthlyIncome.HasValue ? (object)r.MonthlyIncome.Value : "";
-            ws.Cells[row, 10].Value = r.AccountDetail;
-            ws.Cells[row, 11].Value = r.FlagSavingsAccount;
-            ws.Cells[row, 12].Value = r.FlagEMoney;
-            ws.Cells[row, 13].Value = r.AnomalyDate.HasValue
-                ? r.AnomalyDate.Value.ToString("dd/MM/yyyy") : "";
-            ws.Cells[row, 14].Value = r.BehaviorType;
-            ws.Cells[row, 15].Value = r.MtcnList;
-            ws.Cells[row, 16].Value = r.TransactionCount;
-            ws.Cells[row, 17].Value = r.TotalAmount;
-        }
-
-        // Freeze top row, auto-fit
-        ws.View.FreezePanes(2, 1);
-        ws.Cells[ws.Dimension?.Address ?? "A1"].AutoFitColumns();
-
-        pkg.SaveAs(new FileInfo(outputPath));
-    }
+    /// <summary>
+    /// Writes the submission CSV — data rows only, <b>no header row</b>: the upload
+    /// takes the 23 fields by position.
+    /// </summary>
+    public static void Write(List<SbeRecord> records, string outputPath) =>
+        CsvFile.Write(records.Select(ToFields), outputPath);
 }

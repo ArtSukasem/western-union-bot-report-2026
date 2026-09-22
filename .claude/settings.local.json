@@ -14,7 +14,10 @@
       "Bash(python __TRACKED_VAR__/peek.py 'requirements/version2/สรุปความเกี่ยวข้องไฟล์_ใส่ format DS_SBE_SAE รอปรึกษา BoT \\(1\\).xlsx')",
       "Bash(python __TRACKED_VAR__/peek.py requirements/version1/สรุปความเกี่ยวข้องไฟล์.xlsx)",
       "Bash(dotnet build *)",
-      "Bash(dotnet run *)"
+      "Bash(dotnet run *)",
+      "Bash(export PYTHONIOENCODING=utf-8)",
+      "Bash(python -c ' *)",
+      "Bash(PYTHONIOENCODING=utf-8 python -c ' *)"
     ]
   }
 }

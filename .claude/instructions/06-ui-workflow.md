@@ -2,13 +2,32 @@
 
 `MainForm` ([MainForm.cs](../BotReport2026/UI/MainForm.cs) +
 [MainForm.Designer.cs](../BotReport2026/UI/MainForm.Designer.cs)) hosts three
-tabs as `UserControl`s: `_tabFileSelection`, `_tabSettings`, `_tabRunOutput`.
+tabs as `UserControl`s: `_tabFileSelection`, `_tabSettings`, `_tabRunOutput`,
+with the working-folder bar (`_workspaceBar`) docked above them.
+
+## Working folder bar
+[WorkspaceBar.cs](../BotReport2026/UI/WorkspaceBar.cs)
+
+- Sits between the menu and the tabs, always visible: the current working folder
+  in a read-only (still copyable) text box, "📁 เปลี่ยนโฟลเดอร์..." and "📂 เปิด".
+- "เปลี่ยนโฟลเดอร์..." opens a `FolderBrowserDialog`; on OK it calls
+  `Workspace.SetRoot` (which creates the job sub-folders and saves
+  `workspace.json`) and raises `RootChanged` with the folder that was in use before.
+- `MainForm.ApplyWorkspaceChange` handles that event: offers to copy reference
+  files across when the new folder has none, drops the engine's cached
+  `RuleContext`, rescans the input folders, re-picks the reporting month and
+  re-points the output label. See [04-configuration.md](04-configuration.md).
+- Everything else in the UI keeps calling `MainForm.InputRspInboundDir`,
+  `MainForm.OutputDirectory` and friends, which now forward to `Workspace` — so
+  every "📂 เปิดโฟลเดอร์ ..." button and every ✅/❌ status follows the working
+  folder automatically.
 
 ## Tab 1 — File Selection
 [TabFileSelection.cs](../BotReport2026/UI/TabFileSelection.cs)
 
 - On load and on "🔄 โหลดใหม่" (reload), scans `input-rsp-inbound/`,
-  `input-rsp-outbound/` and `input-transaction-report/` via `InputFolderScanner`,
+  `input-rsp-outbound/` and `input-transaction-report/` **inside the working
+  folder** via `InputFolderScanner`,
   storing the full unfiltered list of IB/OB/Transaction Report files. IB vs OB
   comes from the folder, not the file name.
 - `ApplyReportingMonth(month)` buckets those files into **reporting** (exact
@@ -47,6 +66,16 @@ tabs as `UserControl`s: `_tabFileSelection`, `_tabSettings`, `_tabRunOutput`.
   background task.
 - On success, shows both output file paths and enables "📂 เปิดโฟลเดอร์ผลลัพธ์"
   to open `report-results/` in Explorer.
+- "🗑 ล้างผลลัพธ์" deletes every file in `report-results/` (top level only —
+  nested folders are left alone). It confirms first with a Yes/No box defaulting
+  to No, because a DS_SAE workbook may already hold hand-typed EDD answers, and
+  the delete is permanent (no Recycle Bin). Files locked by Excel are reported
+  by name in the log and in a follow-up dialog rather than failing the whole
+  operation. Disabled while a run is in progress, same as Run.
+- There is **no CSV export button in this app**. DS_SBE is already written as
+  `.csv` by the run, and DS_SAE exports itself from a button inside the workbook
+  (see [03-data-formats.md](03-data-formats.md)) so staff never have to come back
+  here after filling in the EDD columns.
 - Validation: Run refuses to start if all three of Reporting IB, Reporting OB,
   and Transaction Report file lists are empty (see `MainForm.StartRun`) — it
   does **not** check that the reference files (sanction list, mapper, crime
@@ -57,14 +86,26 @@ tabs as `UserControl`s: `_tabFileSelection`, `_tabSettings`, `_tabRunOutput`.
 
 ## End-to-end user flow
 
-1. Drop this month's RSP inbound file into `input-rsp-inbound/`, the outbound
+1. Launch the app and check the working folder shown at the top; change it with
+   "📁 เปลี่ยนโฟลเดอร์..." if this month's files live somewhere else
+   (e.g. `D:/bot-report-files`). Everything below is a sub-folder of it, and the
+   choice is remembered for next time.
+2. Drop this month's RSP inbound file into `input-rsp-inbound/`, the outbound
    file into `input-rsp-outbound/`, and `Transaction-Report Mmmyy.xls` into
    `input-transaction-report/`, plus prior months' RSP files needed for Rules
    202/203's rolling windows. File names must still contain the `Mmmyy` month
    token.
-2. Launch the app — it auto-detects the latest month across all scanned files
-   and sets that as the reporting month.
-3. Confirm the reporting month in Tab 3 (or change it, which re-buckets Tab 1).
-4. Check Tab 1's ✅/❌ reference-file status and file listings.
-5. Optionally adjust thresholds in Tab 2.
-6. Run in Tab 3; watch the log; open the output folder when done.
+3. The app auto-detects the latest month across all scanned files and sets that
+   as the reporting month — on startup, after a folder change, and on
+   "🔄 โหลดใหม่" in Tab 1.
+4. Confirm the reporting month in Tab 3 (or change it, which re-buckets Tab 1).
+5. Check Tab 1's ✅/❌ reference-file status and file listings.
+6. Optionally adjust thresholds in Tab 2.
+7. Run in Tab 3; watch the log; open the output folder when done.
+8. `DS_SBE_{yyyyMM}.csv` is ready to submit as-is. Check `error.xlsx` if it appeared.
+9. Open `DS_SAE_{yyyyMM}.xlsm`, enable macros, and complete the EDD columns
+   (วันที่ EDD เสร็จสิ้น, ผลการตรวจสอบ, คำอธิบาย, วันที่สิ้นสุด). Rule 101 rows are
+   already answered and locked.
+10. Click the "⬇ ส่งออก CSV สำหรับ ธปท." button on row 1 of that sheet to write
+   `DS_SAE_{yyyyMM}.csv` beside the workbook. Re-running the report overwrites the
+   .xlsm and discards any EDD answers, so export before re-running.

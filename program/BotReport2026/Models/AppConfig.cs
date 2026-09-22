@@ -3,7 +3,12 @@ namespace BotReport2026.Models;
 public class AppConfig
 {
     // RSP input — cl2 Transaction_Status values kept. Empty list = no filtering.
-    public List<string> RspIncludedStatuses { get; set; } = new() { "PAID" };
+    // Sheet (A) พฤติกรรมความเสี่ยง: "ต้องดู status cl2 ก่อนว่าเป็น PAID, UNPAID เท่านั้นที่เอามาทำรายงาน".
+    public List<string> RspIncludedStatuses { get; set; } = new() { "PAID", "UNPAID" };
+
+    // DS_SAE fields 11 & 15 — branches treated as the online channel (330004) and
+    // therefore having no physical transaction location.
+    public List<string> SaeOnlineChannelBranches { get; set; } = new() { "ATH170025", "ATH170014" };
 
     // Rule 202
     public int Rule202PriorMonths { get; set; } = 6;

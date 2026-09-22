@@ -4,14 +4,21 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>$(NoWarn);CS8618</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="EPPlus" Version="6.*" />
   </ItemGroup>
+  <!--
+    Headless harness over the same sources the WinForms app uses. Everything except
+    UI/ is included so the full ReportEngine can be exercised without a desktop.
+  -->
   <ItemGroup>
-    <Compile Include="..\BotReport2026\Readers\InputFolderScanner.cs" />
-    <Compile Include="..\BotReport2026\Readers\CsvUtil.cs" />
-    <Compile Include="..\BotReport2026\Readers\RspReader.cs" />
-    <Compile Include="..\BotReport2026\Models\RspTransaction.cs" />
+    <Compile Include="..\BotReport2026\Models\**\*.cs" />
+    <Compile Include="..\BotReport2026\Readers\**\*.cs" />
+    <Compile Include="..\BotReport2026\Rules\**\*.cs" />
+    <Compile Include="..\BotReport2026\Writers\**\*.cs" />
+    <Compile Include="..\BotReport2026\Engine\**\*.cs" />
+    <!-- Config/ is excluded: it pulls in Newtonsoft and the harness builds AppConfig directly. -->
   </ItemGroup>
 </Project>

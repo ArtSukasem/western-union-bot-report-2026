@@ -1,4 +1,4 @@
-using BotReport2026.Readers;
+﻿using BotReport2026.Readers;
 
 namespace BotReport2026.UI;
 
@@ -19,6 +19,9 @@ public class TabFileSelection : UserControl
     private List<InputFile> _historicalIb = new(), _historicalOb = new();
 
     private DateTime _currentReportingMonth = DateTime.Today;
+
+    /// <summary>Pause before the manual reload runs, so the refresh is visible to the user.</summary>
+    private const int ReloadDelayMs = 3000;
 
     // Getters consumed by MainForm.StartRun — return full file paths
     public List<string> ReportingIbFiles => _reportingIb.Select(f => f.Path).ToList();
@@ -133,9 +136,11 @@ public class TabFileSelection : UserControl
     private void BuildUI()
     {
         AutoScroll = true;
+        // Docked Top (not Fill) so the stack keeps its natural height and AutoScroll
+        // gives a vertical scroll bar; with Fill the bottom group was squeezed off-screen.
         var layout = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Top,
             ColumnCount = 1,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink
@@ -164,10 +169,26 @@ public class TabFileSelection : UserControl
         var btnOpenRspOb = new Button { Text = "📂 เปิดโฟลเดอร์ RSP Outbound", AutoSize = true };
         var btnOpenTxn = new Button { Text = "📂 เปิดโฟลเดอร์ Transaction Report", AutoSize = true };
 
-        btnReload.Click += (_, _) =>
+        btnReload.Click += async (_, _) =>
         {
-            LoadFromFolders();
-            ApplyReportingMonth(_currentReportingMonth);
+            // Short pause so the user sees the reload actually happen, and so files
+            // that were just dropped into the input folders finish being written.
+            var originalText = btnReload.Text;
+            btnReload.Enabled = false;
+            btnReload.Text = "⏳ กำลังโหลด...";
+            Cursor = Cursors.WaitCursor;
+            try
+            {
+                await Task.Delay(ReloadDelayMs);
+                LoadFromFolders();
+                ApplyReportingMonth(_currentReportingMonth);
+            }
+            finally
+            {
+                Cursor = Cursors.Default;
+                btnReload.Text = originalText;
+                btnReload.Enabled = true;
+            }
         };
         btnOpenRspIb.Click += (_, _) => OpenFolder(MainForm.InputRspInboundDir);
         btnOpenRspOb.Click += (_, _) => OpenFolder(MainForm.InputRspOutboundDir);
@@ -179,8 +200,9 @@ public class TabFileSelection : UserControl
 
         var hint = new Label
         {
-            Text = "วางไฟล์ในโฟลเดอร์ input-rsp-inbound/, input-rsp-outbound/ และ input-transaction-report/ " +
-                   "โปรแกรมจะโหลดและแยกเดือนให้อัตโนมัติ (ชื่อไฟล์ต้องมีเดือน เช่น May26)",
+            Text = "วางไฟล์ในโฟลเดอร์ย่อย input-rsp-inbound/, input-rsp-outbound/ และ input-transaction-report/ " +
+                   "ภายใต้โฟลเดอร์ทำงานที่เลือกไว้ด้านบน โปรแกรมจะโหลดและแยกเดือนให้อัตโนมัติ " +
+                   "(ชื่อไฟล์ต้องมีเดือน เช่น May26)",
             Dock = DockStyle.Fill,
             AutoSize = true,
             ForeColor = Color.DimGray,
@@ -194,19 +216,29 @@ public class TabFileSelection : UserControl
         {
             Text = "ไฟล์อ้างอิง (จำเป็นต้องมีก่อนรัน)",
             Dock = DockStyle.Fill,
-            Height = 140,
+            Height = 160,
             Padding = new Padding(8)
         };
         layout.Controls.Add(grpRef);
 
+        // Scroll host: lets the status label + button columns keep their natural
+        // width and scroll horizontally instead of being clipped on a narrow window.
+        var refScroll = new Panel { Dock = DockStyle.Fill, AutoScroll = true };
+        grpRef.Controls.Add(refScroll);
+
         var tlRef = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill,
+            Location = new Point(0, 0),
             ColumnCount = 2,
             RowCount = 3,
-            AutoSize = true
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink
         };
-        grpRef.Controls.Add(tlRef);
+        tlRef.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        tlRef.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        for (int i = 0; i < 3; i++)
+            tlRef.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        refScroll.Controls.Add(tlRef);
 
         _lblMapperStatus = MakeStatusLabel();
         _lblSanctionStatus = MakeStatusLabel();

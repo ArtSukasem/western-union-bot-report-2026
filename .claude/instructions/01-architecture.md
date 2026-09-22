@@ -23,17 +23,19 @@ scripts — that root doc's "no existing code / Python" framing predates this pr
 | `Rules/` | One class per detection rule, all implementing `IRuleEngine`. |
 | `Engine/` | `ReportEngine` (orchestrator) and `RunParameters` (input bundle for a run). |
 | `Writers/` | `SbeWriter`, `SaeWriter` — write the two output `.xlsx` datasets. |
-| `Config/` | `ConfigManager` — load/save `config.json` next to the executable. |
+| `Config/` | `ConfigManager` — load/save `config.json` next to the executable; `Workspace` — the user-chosen working folder every input/lookup/output path hangs off. |
 | `UI/` | WinForms UI: `MainForm` + three tabs (`TabFileSelection`, `TabSettings`, `TabRunOutput`). |
 
 ## Control flow
 
 1. `Program.Main` → `Application.Run(new UI.MainForm())`.
-2. `MainForm` constructor resolves repo-root-relative paths (5 levels up from the
-   build output dir — see `RepoRoot` in [MainForm.cs](../BotReport2026/UI/MainForm.cs)),
-   ensures the standard folders exist, and auto-scans `input-rsp-inbound/`,
-   `input-rsp-outbound/` and `input-transaction-report/` via `InputFolderScanner`
-   to pick the latest reporting month.
+2. `MainForm` constructor resolves every path under the working folder
+   (see `Workspace` in [Workspace.cs](../BotReport2026/Config/Workspace.cs) and
+   [04-configuration.md](04-configuration.md)), ensures the standard sub-folders
+   exist, and auto-scans `input-rsp-inbound/`, `input-rsp-outbound/` and
+   `input-transaction-report/` via `InputFolderScanner` to pick the latest
+   reporting month. Picking a different working folder in the `WorkspaceBar`
+   re-runs the same scan against the new folder.
 3. User reviews/adjusts file selection (`TabFileSelection`) and rule settings
    (`TabSettings`), then clicks **รันรายงาน** (Run) in `TabRunOutput`.
 4. `MainForm.StartRun` builds a `RunParameters` and calls `ReportEngine.RunAsync`

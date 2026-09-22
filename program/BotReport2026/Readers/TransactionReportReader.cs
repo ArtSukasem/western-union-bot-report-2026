@@ -12,9 +12,9 @@ public static class TransactionReportReader
 
     /// <summary>
     /// Reads Transaction Report file.
-    /// Structure: Row1="online", Row2=field names, Data from Row3.
-    /// Columns are indexed by position; header text is ignored.
-    /// Pre-filters to rows where Error_Reason starts with "Income" AND Status qualifies.
+    /// Columns are indexed by position (cl3=MTCN, cl4=Status, cl9=Sender name,
+    /// cl12=Sender ID number, cl17=Principal Amount, cl24=Error reason).
+    /// Pre-filters to rows where Error_Reason mentions income AND Status qualifies.
     /// </summary>
     public static List<TransactionReportRow> ReadFile(string filePath)
     {
@@ -22,9 +22,11 @@ public static class TransactionReportReader
         using var pkg = new ExcelPackage(new FileInfo(filePath));
         var ws = pkg.Workbook.Worksheets[0];
         int totalRows = ws.Dimension?.Rows ?? 0;
-        if (totalRows < 3) return results;
 
-        for (int row = 3; row <= totalRows; row++)
+        int firstDataRow = FindFirstDataRow(ws, totalRows);
+        if (firstDataRow > totalRows) return results;
+
+        for (int row = firstDataRow; row <= totalRows; row++)
         {
             string Get(int col) => ws.Cells[row, col].Text?.Trim() ?? "";
 
@@ -50,5 +52,21 @@ public static class TransactionReportReader
         }
 
         return results;
+    }
+
+    /// <summary>
+    /// Finds the first data row. The export has appeared with one header row (row 1 =
+    /// field names) and with two (row 1 = an "online" banner, row 2 = field names), so
+    /// the "MTCN" header in cl3 is located rather than assumed. Falls back to row 2.
+    /// </summary>
+    public static int FindFirstDataRow(ExcelWorksheet ws, int totalRows)
+    {
+        for (int row = 1; row <= Math.Min(3, totalRows); row++)
+        {
+            string cell = ws.Cells[row, 3].Text?.Trim() ?? "";
+            if (cell.Equals("MTCN", StringComparison.OrdinalIgnoreCase))
+                return row + 1;
+        }
+        return 2;
     }
 }

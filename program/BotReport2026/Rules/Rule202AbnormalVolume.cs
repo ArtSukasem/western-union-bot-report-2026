@@ -9,7 +9,6 @@ public class Rule202AbnormalVolume : IRuleEngine
     public (List<SbeRecord>, List<SaeRecord>) Execute(RuleContext ctx)
     {
         var sbe = new List<SbeRecord>();
-        var period = ctx.ReportingMonth.ToString("yyyy-MM");
         var reportingYM = (ctx.ReportingMonth.Year, ctx.ReportingMonth.Month);
 
         // Build monthly totals from historical RSP (exclude reporting month as safety filter)
@@ -73,20 +72,7 @@ public class Rule202AbnormalVolume : IRuleEngine
             if (resolved == null) continue;
             var (txns, suffix) = resolved.Value;
 
-            var first = txns[0];
-            sbe.Add(new SbeRecord
-            {
-                ReportingPeriod = period,
-                FirstName = first.FirstName,
-                LastName = first.LastName,
-                PersonRefId = personId,
-                AnomalyDate = txns.Min(t => t.TransactionDate),
-                BehaviorType = "202",
-                RuleCode = RuleCode + suffix,
-                MtcnList = string.Join(", ", txns.Select(t => t.MTCN).Distinct()),
-                TransactionCount = txns.Count,
-                TotalAmount = txns.Sum(t => t.Principal),
-            });
+            sbe.AddRange(SbeRecordFactory.From(txns, RuleCode + suffix, ctx));
         }
 
         ctx.LogCallback($"Rule 202: พบ {sbe.Count} รายการยอดผิดปกติ (avg × {ctx.Config.Rule202Multiplier})");

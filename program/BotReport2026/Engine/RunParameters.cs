@@ -12,6 +12,8 @@ public class RunParameters
     public string SanctionListPath { get; set; } = "";
     public string CrimeListPath { get; set; } = "";
     public string OccupationMapPath { get; set; } = "";
+    /// <summary>Folder holding the DS_SBE/DS_SAE reference tables (SAE-lookups/).</summary>
+    public string ReferenceDataDirectory { get; set; } = "";
     public DateTime ReportingMonth { get; set; }
     public AppConfig Config { get; set; } = new();
     public string OutputDirectory { get; set; } = "";

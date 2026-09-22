@@ -30,9 +30,11 @@ public static class RspReader
         var results = new List<RspTransaction>();
         int skippedByStatus = 0;
         bool isHeader = true;
+        int rowNumber = 0;   // 1-based, matching what Excel shows (row 1 = header)
 
         foreach (var row in CsvUtil.ReadRows(filePath))
         {
+            rowNumber++;
             if (isHeader) { isHeader = false; continue; }
 
             string Get(int col) => col <= row.Length ? CsvUtil.Clean(row[col - 1]) : "";
@@ -52,7 +54,8 @@ public static class RspReader
             {
                 MTCN = mtcn,
                 Direction = direction,
-                SourceFile = Path.GetFileName(filePath)
+                SourceFile = Path.GetFileName(filePath),
+                SourceRow = rowNumber
             };
 
             if (direction == "IB")
@@ -60,6 +63,7 @@ public static class RspReader
                 // IB: cl5=Pay_Date, cl6=Pay_Time, cl12=Pay_Principal, cl22=Branch
                 // cl60=ReceiverFirstName, cl61=ReceiverLastName, cl74=ReceiverID
                 // cl89=ReceiverOccupation, cl114=ReceiverOccupationOther
+                // v3: cl66=Nationality, cl68-73=Address, cl77=Id1_Issuer, cl78=Id1_Type
                 txn.TransactionDate = ParseDate(Get(5));
                 txn.TransactionTime = ParseTime(Get(6));
                 txn.Principal = ParseDecimal(Get(12));
@@ -69,12 +73,18 @@ public static class RspReader
                 txn.PersonId = Get(74);
                 string occ = Get(89);
                 txn.Occupation = IsOther(occ) ? Get(114) : occ;
+                txn.Nationality = Get(66);
+                txn.AddressLines = new[] { Get(68), Get(69), Get(70), Get(71), Get(72), Get(73) };
+                txn.PostalCode = Get(73);
+                txn.IdIssuerCountry = Get(77);
+                txn.IdType = Get(78);
             }
             else // OB
             {
                 // OB: cl3=Send_Date, cl4=Send_Time, cl8=Send_Principal, cl16=Branch
                 // cl25=SenderFirstName, cl26=SenderLastName, cl39=SenderID
                 // cl54=SenderOccupation, cl104=SenderOccupationOther
+                // v3: cl31=Nationality, cl33-38=Address, cl42=Id1_Issuer, cl43=Id1_Type
                 txn.TransactionDate = ParseDate(Get(3));
                 txn.TransactionTime = ParseTime(Get(4));
                 txn.Principal = ParseDecimal(Get(8));
@@ -84,6 +94,11 @@ public static class RspReader
                 txn.PersonId = Get(39);
                 string occ = Get(54);
                 txn.Occupation = IsOther(occ) ? Get(104) : occ;
+                txn.Nationality = Get(31);
+                txn.AddressLines = new[] { Get(33), Get(34), Get(35), Get(36), Get(37), Get(38) };
+                txn.PostalCode = Get(38);
+                txn.IdIssuerCountry = Get(42);
+                txn.IdType = Get(43);
             }
 
             if (txn.Principal <= 0) continue;

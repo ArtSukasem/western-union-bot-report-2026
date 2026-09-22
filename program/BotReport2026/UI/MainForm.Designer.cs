@@ -1,13 +1,15 @@
-namespace BotReport2026.UI;
+﻿namespace BotReport2026.UI;
 
 partial class MainForm
 {
     private System.ComponentModel.IContainer components = null;
     private TabControl _tabControl;
-    private TabPage _tpFiles, _tpSettings, _tpRun;
+    private TabPage _tpFiles, _tpSettings, _tpRun, _tpExplain;
     private TabFileSelection _tabFileSelection;
     private TabSettings _tabSettings;
     private TabRunOutput _tabRunOutput;
+    private TabExplain _tabExplain;
+    private WorkspaceBar _workspaceBar;
     private MenuStrip _menuStrip;
     private ToolStripMenuItem _menuFile, _menuSaveConfig, _menuLoadConfig;
 
@@ -37,6 +39,7 @@ partial class MainForm
         _tabFileSelection = new TabFileSelection();
         _tabSettings = new TabSettings();
         _tabRunOutput = new TabRunOutput(this);
+        _tabExplain = new TabExplain(this);
 
         _tpFiles = new TabPage("📁  เลือกไฟล์") { Padding = new Padding(6) };
         _tpFiles.Controls.Add(_tabFileSelection);
@@ -50,10 +53,19 @@ partial class MainForm
         _tpRun.Controls.Add(_tabRunOutput);
         _tabRunOutput.Dock = DockStyle.Fill;
 
-        _tabControl = new TabControl { Dock = DockStyle.Fill };
-        _tabControl.TabPages.AddRange(new[] { _tpFiles, _tpSettings, _tpRun });
+        _tpExplain = new TabPage("🔍  ตรวจสอบรายบุคคล") { Padding = new Padding(6) };
+        _tpExplain.Controls.Add(_tabExplain);
+        _tabExplain.Dock = DockStyle.Fill;
 
+        _tabControl = new TabControl { Dock = DockStyle.Fill };
+        _tabControl.TabPages.AddRange(new[] { _tpFiles, _tpSettings, _tpRun, _tpExplain });
+
+        _workspaceBar = new WorkspaceBar { Dock = DockStyle.Top };
+
+        // Added back-to-front: the last Add sits topmost among Top-docked controls, so
+        // the menu ends up above the workspace bar, which sits above the tabs.
         Controls.Add(_tabControl);
+        Controls.Add(_workspaceBar);
         Controls.Add(_menuStrip);
     }
 }

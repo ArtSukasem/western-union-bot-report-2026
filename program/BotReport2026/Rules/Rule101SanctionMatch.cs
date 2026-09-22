@@ -9,7 +9,6 @@ public class Rule101SanctionMatch : IRuleEngine
     public (List<SbeRecord>, List<SaeRecord>) Execute(RuleContext ctx)
     {
         var sbe = new List<SbeRecord>();
-        var period = ctx.ReportingMonth.ToString("yyyy-MM");
 
         // Group by PersonId
         var byPerson = ctx.ReportingMonthRsp
@@ -46,21 +45,7 @@ public class Rule101SanctionMatch : IRuleEngine
 
             if (!hit) continue;
 
-            var txns = group.ToList();
-            var first2 = txns[0];
-            sbe.Add(new SbeRecord
-            {
-                ReportingPeriod = period,
-                FirstName = first2.FirstName,
-                LastName = first2.LastName,
-                PersonRefId = personId,
-                AnomalyDate = txns.Min(t => t.TransactionDate),
-                BehaviorType = "101",
-                RuleCode = RuleCode,
-                MtcnList = string.Join(", ", txns.Select(t => t.MTCN).Distinct()),
-                TransactionCount = txns.Count,
-                TotalAmount = txns.Sum(t => t.Principal)
-            });
+            sbe.AddRange(SbeRecordFactory.From(group.ToList(), RuleCode, ctx));
         }
 
         ctx.LogCallback($"Rule 101: พบ {sbe.Count} รายการที่ตรงกับ Sanction List");

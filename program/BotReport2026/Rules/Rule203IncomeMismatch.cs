@@ -10,34 +10,13 @@ public class Rule203IncomeMismatch : IRuleEngine
     public (List<SbeRecord>, List<SaeRecord>) Execute(RuleContext ctx)
     {
         var sbeList = new List<SbeRecord>();
-        var saeList = new List<SaeRecord>();
-        var period = ctx.ReportingMonth.ToString("yyyy-MM");
 
         // --- 203 Online: Transaction Report rows (already pre-filtered by reader) ---
+        // These have already been through EDD — CSC called the customer and the
+        // transaction was subsequently approved — so the DS_SAE row is pre-answered
+        // downstream by SaeRecordFactory rather than left for staff.
         foreach (var row in ctx.TransactionReport)
-        {
-            sbeList.Add(new SbeRecord
-            {
-                ReportingPeriod = period,
-                FirstName = row.SenderName,
-                LastName = "",
-                PersonRefId = row.SenderIdNumber,
-                AnomalyDate = ctx.ReportingMonth,
-                BehaviorType = "203",
-                RuleCode = "203-Online",
-                MtcnList = row.MTCN,
-                TransactionCount = 1,
-                TotalAmount = row.PrincipalAmount ?? 0,
-                HasSae = true
-            });
-            saeList.Add(new SaeRecord
-            {
-                ReportingPeriod = period,
-                PersonDetail = row.SenderName,
-                EddCompletionDate = ctx.ReportingMonth,
-                EddResult = "ผ่าน EDD"
-            });
-        }
+            sbeList.Add(SbeRecordFactory.FromOnline(row, "203-Online", ctx));
 
         // --- 203 Retail: RSP excluding online branches ---
         var excludedBranches = ctx.Config.Rule203ExcludedBranches
@@ -97,24 +76,10 @@ public class Rule203IncomeMismatch : IRuleEngine
             if (resolved == null) continue;
             var (txns, suffix) = resolved.Value;
 
-            var first = txns[0];
-            sbeList.Add(new SbeRecord
-            {
-                ReportingPeriod = period,
-                FirstName = first.FirstName,
-                LastName = first.LastName,
-                PersonRefId = personId,
-                MonthlyIncome = expectedIncome,
-                AnomalyDate = txns.Min(t => t.TransactionDate),
-                BehaviorType = "203",
-                RuleCode = "203-Retail" + suffix,
-                MtcnList = string.Join(", ", txns.Select(t => t.MTCN).Distinct()),
-                TransactionCount = txns.Count,
-                TotalAmount = txns.Sum(t => t.Principal)
-            });
+            sbeList.AddRange(SbeRecordFactory.From(txns, "203-Retail" + suffix, ctx));
         }
 
         ctx.LogCallback($"Rule 203: Online={ctx.TransactionReport.Count}, Retail={sbeList.Count - ctx.TransactionReport.Count} รายการ");
-        return (sbeList, saeList);
+        return (sbeList, new List<SaeRecord>());
     }
 }

@@ -56,19 +56,7 @@ public class Rule209ContinuousTrading : IRuleEngine
             var (flaggedTxns, suffix) = resolved.Value;
 
             var first = flaggedTxns[0];
-            sbe.Add(new SbeRecord
-            {
-                ReportingPeriod = period,
-                FirstName = first.FirstName,
-                LastName = first.LastName,
-                PersonRefId = personGroup.Key,
-                AnomalyDate = flaggedTxns.Min(t => t.TransactionDate),
-                BehaviorType = "209",
-                RuleCode = RuleCode + suffix,
-                MtcnList = string.Join(", ", flaggedTxns.Select(t => t.MTCN).Distinct()),
-                TransactionCount = flaggedTxns.Count,
-                TotalAmount = flaggedTxns.Sum(t => t.Principal)
-            });
+            sbe.AddRange(SbeRecordFactory.From(flaggedTxns, RuleCode + suffix, ctx));
         }
 
         ctx.LogCallback($"Rule 209: พบ {sbe.Count} รายการทำธุรกรรมต่อเนื่อง ≥{hours} ชั่วโมง");

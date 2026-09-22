@@ -48,19 +48,7 @@ public class Rule212FinancialCrime : IRuleEngine
             if (!hit) continue;
 
             var first = txns[0];
-            sbe.Add(new SbeRecord
-            {
-                ReportingPeriod = period,
-                FirstName = first.FirstName,
-                LastName = first.LastName,
-                PersonRefId = group.Key,
-                AnomalyDate = txns.Min(t => t.TransactionDate),
-                BehaviorType = "212",
-                RuleCode = RuleCode,
-                MtcnList = string.Join(", ", txns.Select(t => t.MTCN).Distinct()),
-                TransactionCount = txns.Count,
-                TotalAmount = txns.Sum(t => t.Principal)
-            });
+            sbe.AddRange(SbeRecordFactory.From(txns, RuleCode, ctx));
         }
 
         ctx.LogCallback($"Rule 212: พบ {sbe.Count} รายการตรงกับบุคคลอาชญากรรมทางการเงิน");

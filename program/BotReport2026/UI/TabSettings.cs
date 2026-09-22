@@ -6,6 +6,8 @@ public class TabSettings : UserControl
 {
     // RSP input
     private TextBox _tbRspStatuses;
+    // DS_SAE
+    private TextBox _tbSaeOnlineBranches;
     // Rule 202
     private NumericUpDown _n202Months, _n202Mult;
     // Rule 203
@@ -32,6 +34,7 @@ public class TabSettings : UserControl
         Controls.Add(layout);
 
         layout.Controls.Add(MakeRspInput());
+        layout.Controls.Add(MakeSaeInput());
         layout.Controls.Add(Make101Info());
         layout.Controls.Add(Make202());
         layout.Controls.Add(Make203());
@@ -54,7 +57,15 @@ public class TabSettings : UserControl
     {
         var gb = MakeGroup("ไฟล์ RSP (.csv) — สถานะรายการที่นำมาคำนวณ (ใช้กับทุก rule)");
         AddRow(gb, "สถานะที่นับ (cl2) — บรรทัดละ 1, เว้นว่าง = ไม่กรอง:",
-            _tbRspStatuses = MakeTextBox("PAID"), labelTop: true);
+            _tbRspStatuses = MakeTextBox("PAID\r\nUNPAID"), labelTop: true);
+        return gb;
+    }
+
+    private GroupBox MakeSaeInput()
+    {
+        var gb = MakeGroup("DS_SAE — สาขาที่ถือเป็นช่องทาง Online (330004, ไม่มีสถานที่ทำธุรกรรม)");
+        AddRow(gb, "รหัสสาขา Online — บรรทัดละ 1:",
+            _tbSaeOnlineBranches = MakeTextBox("ATH170025\r\nATH170014"), labelTop: true);
         return gb;
     }
 
@@ -124,6 +135,7 @@ public class TabSettings : UserControl
         return new AppConfig
         {
             RspIncludedStatuses = SplitLines(_tbRspStatuses.Text),
+            SaeOnlineChannelBranches = SplitLines(_tbSaeOnlineBranches.Text),
             Rule202PriorMonths = (int)_n202Months.Value,
             Rule202Multiplier = _n202Mult.Value,
             Rule203RollingMonths = (int)_n203Months.Value,
@@ -146,6 +158,7 @@ public class TabSettings : UserControl
     public void SetConfig(AppConfig c)
     {
         _tbRspStatuses.Text = string.Join(Environment.NewLine, c.RspIncludedStatuses ?? new());
+        _tbSaeOnlineBranches.Text = string.Join(Environment.NewLine, c.SaeOnlineChannelBranches ?? new());
         _n202Months.Value = c.Rule202PriorMonths;
         _n202Mult.Value = c.Rule202Multiplier;
         _n203Months.Value = c.Rule203RollingMonths;

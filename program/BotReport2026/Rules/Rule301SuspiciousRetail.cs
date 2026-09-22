@@ -55,19 +55,7 @@ public class Rule301SuspiciousRetail : IRuleEngine
         {
             var txns = group.ToList();
             var first = txns[0];
-            sbe.Add(new SbeRecord
-            {
-                ReportingPeriod = period,
-                FirstName = first.FirstName,
-                LastName = first.LastName,
-                PersonRefId = first.PersonId,
-                AnomalyDate = txns.Min(t => t.TransactionDate),
-                BehaviorType = "301",
-                RuleCode = RuleCode,
-                MtcnList = string.Join(", ", txns.Select(t => t.MTCN).Distinct()),
-                TransactionCount = txns.Count,
-                TotalAmount = txns.Sum(t => t.Principal)
-            });
+            sbe.AddRange(SbeRecordFactory.From(txns, RuleCode, ctx));
         }
 
         ctx.LogCallback($"Rule 301: พบ {sbe.Count} รายการตรงกับพฤติกรรมหน้าร้านน่าสงสัย");

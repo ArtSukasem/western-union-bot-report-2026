@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 
 namespace BotReport2026.Readers;
 
@@ -41,7 +41,15 @@ public static class CsvUtil
             switch (c)
             {
                 case '"':
-                    inQuotes = true;
+                    // A quote opens a quoted field only at the *start* of a field, as in
+                    // Excel and RFC 4180. Mid-field it is an ordinary character. RSP exports
+                    // carry both free text — REFUND THE DEPOSIT" "RETURN THE DEPOSIT" — and
+                    // the Excel-escape form ="0956506318"; treating those as real quotes
+                    // swallowed the commas after them and then the line break too, merging
+                    // the whole rest of the file into one row. Unwrapping ="..." is Clean's
+                    // job, not the parser's.
+                    if (field.Length == 0) inQuotes = true;
+                    else field.Append(c);
                     rowHasContent = true;
                     break;
 

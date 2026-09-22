@@ -19,9 +19,33 @@
   | Person ID | cl74 | cl39 |
   | Occupation | cl89 (fallback cl114 if "Other/OTHERS") | cl54 (fallback cl104) |
 
-- Date parsing tries `yyyy-MM-dd`, `dd-MM-yyyy`, `dd/MM/yyyy`, `M/d/yyyy`,
-  `yyyy/MM/dd`, then a generic `DateTime.TryParse` fallback.
+- Date parsing tries `MM/dd/yyyy`, `M/d/yyyy`, `yyyy-MM-dd`, `yyyy/MM/dd`,
+  `dd-MM-yyyy`, then a generic `DateTime.TryParse` fallback. `dd/MM/yyyy` is
+  deliberately **not** in the list — RSP dates are US-order, and accepting both
+  would silently swap day and month on the days where either parse succeeds.
 - Decimal parsing strips thousands-separator commas.
+
+## RSP CSV parsing — `CsvUtil`
+[CsvUtil.cs](../BotReport2026/Readers/CsvUtil.cs)
+
+A `"` opens a quoted field **only at the start of a field**; anywhere else it is an
+ordinary character. This matches Excel and RFC 4180, and it is not optional — RSP
+exports put bare quotes in the middle of unquoted fields, in two forms:
+
+- free text, e.g. a reason field reading `REFUND THE DEPOSIT" "RETURN THE DEPOSIT"`
+- the Excel-escape form `="0956506318"` used on phone/ID columns so Excel keeps the
+  leading zero
+
+Treating those as real quote marks makes the parser swallow the commas that follow —
+and then the line break too — so rows merge and every column after the stray quote
+shifts. Because the `="..."` fields keep re-opening the quote on each following line,
+one odd quote does not resolve itself: it eats the **entire rest of the file**. That
+is exactly what happened to `..._Inbound_Mar26.csv`, where row 5276 carried the
+`REFUND THE DEPOSIT"` text and the reader produced 5,276 rows instead of 9,759 —
+silently, since a short file looks like a small month.
+
+Unwrapping `="..."` is `Clean`'s job, not the parser's: `Clean` trims surrounding
+whitespace (dates arrive as `" 03/23/2026"`) and strips the `="` / `"` wrapper.
 
 ## Transaction Report — `TransactionReportReader`
 [TransactionReportReader.cs](../BotReport2026/Readers/TransactionReportReader.cs)

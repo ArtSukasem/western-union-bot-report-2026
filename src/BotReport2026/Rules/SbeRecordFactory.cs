@@ -26,7 +26,7 @@ public static class SbeRecordFactory
         {
             DataPeriod = ctx.DataPeriod,
             ReferenceNo = t.MTCN,
-            BehaviorType = behaviorType,
+            BehaviorType = BehaviorTypeFor(behaviorType),
             BehaviorDescription = Describe(behaviorType, ctx),
             IdTypeCode = ClassificationTables.ResolveIdType(t.IdType),
             IdIssuerCountryCode = ctx.ReferenceData.ToIso2(t.IdIssuerCountry),
@@ -35,7 +35,7 @@ public static class SbeRecordFactory
             LastName = t.LastName,
             Address = t.FullAddress,
             PostalCode = t.PostalCode,
-            OccupationCode = ClassificationTables.ResolveOccupation(t.Occupation),
+            OccupationCode = ResolveOccupationCode(t, ctx),
             AnomalyDate = ctx.ReportDate,
             Source = t,
             RuleCode = ruleCode
@@ -62,6 +62,19 @@ public static class SbeRecordFactory
         };
     }
 
+    /// <summary>
+    /// DS_SBE field 16 — the BoT code of the occupation lookup row the transaction
+    /// resolves to (see <see cref="OccupationLookup.Resolve"/>); "อื่น ๆ" when nothing matches
+    /// or the matched row has no code.
+    /// </summary>
+    private static string ResolveOccupationCode(RspTransaction t, RuleContext ctx)
+    {
+        var match = ctx.Occupations.Resolve(t.Occupation, t.OccupationOther);
+        return match is { Entry.BotCode.Length: > 0 }
+            ? match.Entry.BotCode
+            : ClassificationTables.OccupationOther;
+    }
+
     /// <summary>"203-Retail-IB" → "203". Field 4 takes only the three-digit code.</summary>
     private static string BareRuleNumber(string ruleCode)
     {
@@ -70,6 +83,13 @@ public static class SbeRecordFactory
         return cut < 0 ? ruleCode : ruleCode.Substring(0, cut);
     }
 
-    private static string Describe(string behaviorType, RuleContext ctx) =>
-        ctx.ReferenceData.BehaviorDescriptions.TryGetValue(behaviorType, out var d) ? d : "";
+    /// <summary>DS_SBE field 4 — the rule number, except Rule 101 which reports as "101;211".</summary>
+    private static string BehaviorTypeFor(string ruleNumber) =>
+        ruleNumber == "101" ? ClassificationTables.Rule101BehaviorType : ruleNumber;
+
+    /// <summary>DS_SBE field 5 — from behavior_descriptions.xlsx, except Rule 101's combined text.</summary>
+    private static string Describe(string ruleNumber, RuleContext ctx) =>
+        ruleNumber == "101"
+            ? ClassificationTables.Rule101BehaviorDescription
+            : ctx.ReferenceData.BehaviorDescriptions.TryGetValue(ruleNumber, out var d) ? d : "";
 }

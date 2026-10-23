@@ -58,6 +58,16 @@ public static class ClassificationTables
     public static string EddResultValue(string option) =>
         string.IsNullOrWhiteSpace(option) ? "" : option.Trim().Substring(0, 1);
 
+    /// <summary>
+    /// DS_SBE fields 4 & 5 for a Rule 101 hit: reported as both 101 (used in crime) and
+    /// 211 (linked to accounts under a seizure order), with one combined description in
+    /// place of the per-code text from behavior_descriptions.xlsx.
+    /// </summary>
+    public const string Rule101BehaviorType = "101;211";
+    public const string Rule101BehaviorDescription =
+        "พบว่าธุรกรรม ถูกนำไปใช้หรือเกี่ยวข้องในการประกอบอาชญากรรมและมีความเชื่องโยงในลักษณะที่มีการทำรายการผิดปกติ " +
+        "เช่น บัญชีที่ถูกออกหมายอายัด";
+
     /// <summary>Rule 101 rows are pre-answered: on the CFR list is by definition abnormal.</summary>
     public const string Rule101EddResultOption = "1 = ตรวจสอบแล้ว พบว่าเป็นพฤติกรรมที่ผิดปกติ";
     public const string Rule101EddReason = "รายชื่ออยู่ใน CFR";
@@ -66,52 +76,8 @@ public static class ClassificationTables
     public const string EddReasonOtherPrefix = "อื่น ๆ";
 
     // ---- Occupation Code (DS_SBE field 16) ----
-    // Keys are the occupation names in sheet 'Occupation code' column A; codes are column B.
-    // Anything not listed falls through to OccupationOther per the sheet's
-    // "ที่เหลือที่ไม่มีระบุให้เป็นอื่น ๆ".
+    // The code itself comes from the "BoT code" column of the occupation lookup
+    // (lookups/list_of_occupation_expected_monthly_income.xlsx); this is the fallback for
+    // an occupation that matches no row, per the sheet's "ที่เหลือที่ไม่มีระบุให้เป็นอื่น ๆ".
     public const string OccupationOther = "2003500015";
-
-    private static readonly Dictionary<string, string> OccupationCodes =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["Law Enforcement/Military Professional"] = "2003500001",
-            ["Teacher/Educator"] = "2003500005",
-            ["Medical and Health Care Professional"] = "2003500007",
-            ["Airline/Maritime Employee"] = "2003500008",
-            ["Laborer-Agriculture"] = "2003500009",
-            ["Sales/Insurance/Real Estate Professional"] = "2003500010",
-            ["Laborer-Manufacturing"] = "2003500011",
-            ["Domestic Helper"] = "2003500012",
-            ["Housewife/Child Care"] = "2003500012",
-            ["Domestic Helper /Housewife/Child Care"] = "2003500012",
-            ["Student"] = "2003500013",
-            ["Retired"] = "2003500014",
-        };
-
-    /// <summary>
-    /// Maps an RSP occupation string (cl89 / cl54) to a BoT occupation code.
-    /// RSP spells occupations differently from the sheet, so an exact match is tried
-    /// first, then a case-insensitive contains-match in either direction.
-    /// </summary>
-    public static string ResolveOccupation(string rawOccupation)
-    {
-        if (string.IsNullOrWhiteSpace(rawOccupation)) return OccupationOther;
-        string norm = rawOccupation.Trim();
-
-        if (OccupationCodes.TryGetValue(norm, out var code)) return code;
-
-        // Substring match both ways, since RSP and the sheet spell occupations
-        // differently ("HOUSEWIFE" vs "Housewife/Child Care"). Short values are
-        // excluded from the reverse direction — a two-character occupation would
-        // otherwise match almost any key.
-        string upper = norm.ToUpperInvariant();
-        foreach (var kv in OccupationCodes)
-        {
-            string key = kv.Key.ToUpperInvariant();
-            if (upper.Contains(key)) return kv.Value;
-            if (upper.Length >= 4 && key.Contains(upper)) return kv.Value;
-        }
-
-        return OccupationOther;
-    }
 }

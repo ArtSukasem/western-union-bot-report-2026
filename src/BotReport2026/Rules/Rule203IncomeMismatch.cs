@@ -41,21 +41,23 @@ public class Rule203IncomeMismatch : IRuleEngine
             .Where(t => !string.IsNullOrWhiteSpace(t.PersonId))
             .GroupBy(t => t.PersonId.Trim(), StringComparer.OrdinalIgnoreCase);
 
+        int otherIncomeCount = 0;
         foreach (var group in byPerson)
         {
             string personId = group.Key;
-            // Get occupation from any transaction in the group
-            string occ = group.FirstOrDefault(t => !string.IsNullOrWhiteSpace(t.Occupation))?.Occupation ?? "";
-            decimal? expectedIncome = OccupationReader.FindExpectedIncome(occ, ctx.OccupationMap);
-
-            if (expectedIncome == null || expectedIncome <= 0)
+            var (match, _) = ResolveIncome(group, ctx.Occupations);
+            decimal expectedIncome;
+            if (match != null)
+                expectedIncome = match.Entry.ExpectedIncome!.Value;
+            else
             {
-                if (!string.IsNullOrWhiteSpace(occ))
-                    ctx.LogCallback($"Rule 203 Retail: ไม่พบรายได้สำหรับอาชีพ '{occ}' (PersonId: {personId})");
-                continue;
+                // Occupation is "อื่น ๆ" — nothing in the lookup gives an income
+                expectedIncome = ctx.Config.Rule203OtherMonthlyIncome;
+                otherIncomeCount++;
             }
+            if (expectedIncome <= 0) continue;
 
-            decimal threshold = expectedIncome.Value * ctx.Config.Rule203Multiplier;
+            decimal threshold = expectedIncome * ctx.Config.Rule203Multiplier;
             decimal ibWindowTotal = group.Where(t => t.Direction == "IB").Sum(t => t.Principal);
             decimal obWindowTotal = group.Where(t => t.Direction == "OB").Sum(t => t.Principal);
 
@@ -79,7 +81,38 @@ public class Rule203IncomeMismatch : IRuleEngine
             sbeList.AddRange(SbeRecordFactory.From(txns, "203-Retail" + suffix, ctx));
         }
 
+        if (otherIncomeCount > 0)
+            ctx.LogCallback($"Rule 203 Retail: {otherIncomeCount:N0} คนไม่พบรายได้ตามอาชีพในไฟล์ lookup " +
+                            $"→ ใช้รายได้อาชีพอื่น ๆ {ctx.Config.Rule203OtherMonthlyIncome:N0} บาท/เดือน");
         ctx.LogCallback($"Rule 203: Online={ctx.TransactionReport.Count}, Retail={sbeList.Count - ctx.TransactionReport.Count} รายการ");
         return (sbeList, new List<SaeRecord>());
     }
+
+    /// <summary>
+    /// The person's expected monthly income: the first transaction (reporting month first,
+    /// then history) whose occupation resolves to a lookup row with an income.
+    /// <c>match</c> is null when none does; <c>source</c> is then the first transaction
+    /// that had any occupation text at all, for display — or null if none had any.
+    /// </summary>
+    public static (OccupationMatch? match, RspTransaction? source) ResolveIncome(
+        IEnumerable<RspTransaction> txns, OccupationLookup lookup)
+    {
+        RspTransaction? firstWithText = null;
+        foreach (var t in txns)
+        {
+            if (firstWithText == null &&
+                (!string.IsNullOrWhiteSpace(t.Occupation) || !string.IsNullOrWhiteSpace(t.OccupationOther)))
+                firstWithText = t;
+
+            var m = lookup.Resolve(t.Occupation, t.OccupationOther);
+            if (m?.Entry.ExpectedIncome is > 0) return (m, t);
+        }
+        return (null, firstWithText);
+    }
+
+    /// <summary>"OTHERS / HOUSEWIFT" — the dropdown value plus the free text when there is one.</summary>
+    public static string OccupationText(RspTransaction t) =>
+        string.IsNullOrWhiteSpace(t.OccupationOther)
+            ? t.Occupation
+            : $"{t.Occupation} / {t.OccupationOther}";
 }

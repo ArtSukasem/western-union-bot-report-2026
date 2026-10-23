@@ -16,7 +16,7 @@ public class RuleContext
     public List<TransactionReportRow> TransactionReport { get; set; } = new();
     public SanctionData SanctionData { get; set; } = new();
     public CrimeSuspiciousData CrimeSuspicious { get; set; } = new();
-    public Dictionary<string, decimal> OccupationMap { get; set; } = new();
+    public OccupationLookup Occupations { get; set; } = new(Array.Empty<OccupationEntry>(), 0.8);
     public ReferenceData ReferenceData { get; set; } = new();
     public AppConfig Config { get; set; } = new();
     public DateTime ReportingMonth { get; set; }

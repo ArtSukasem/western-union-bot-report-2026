@@ -13,7 +13,8 @@ public static class SaeRecordFactory
     public static SaeRecord From(SbeRecord sbe, RuleContext ctx)
     {
         var t = sbe.Source;
-        bool isRule101 = sbe.BehaviorType == "101";
+        // RuleCode, not field 4: field 4 reads "101;211" for these rows
+        bool isRule101 = sbe.RuleCode == "101";
 
         var sae = new SaeRecord
         {

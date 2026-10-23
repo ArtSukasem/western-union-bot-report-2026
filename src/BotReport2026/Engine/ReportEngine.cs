@@ -160,8 +160,10 @@ public class ReportEngine
 
         // 1. Occupation map
         Stage("กำลังโหลด Occupation Map...", WeightOccupationMap);
-        var occMap = OccupationReader.ReadOccupationMap(p.OccupationMapPath);
-        Log($"โหลด Occupation Map เสร็จ {occMap.Count} รายการ");
+        var occupations = OccupationReader.Read(
+            p.OccupationMapPath, p.Config.OccupationFuzzyThresholdPercent / 100.0);
+        Log($"โหลด Occupation Map เสร็จ {occupations.Count} รายการ " +
+            $"(fuzzy cl114/cl104 ≥ {p.Config.OccupationFuzzyThresholdPercent}%)");
         ct.ThrowIfCancellationRequested();
 
         // 2. Sanction lists
@@ -215,7 +217,7 @@ public class ReportEngine
             TransactionReport = txnReport,
             SanctionData = sanctionData,
             CrimeSuspicious = crimeData,
-            OccupationMap = occMap,
+            Occupations = occupations,
             ReferenceData = referenceData,
             Config = p.Config,
             ReportingMonth = new DateTime(p.ReportingMonth.Year, p.ReportingMonth.Month, 1),

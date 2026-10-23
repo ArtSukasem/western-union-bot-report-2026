@@ -98,8 +98,10 @@ public static class PersonExplainer
 
         s.Lines.Add($"{Bullet}งวดข้อมูล : {ctx.ReportingMonth:MMM yyyy} (สิ้นงวด {ctx.DataPeriod})");
         s.Lines.Add($"{Bullet}ชื่อ-สกุล : {(any?.FullName is { Length: > 0 } n ? n : "-")}");
-        s.Lines.Add($"{Bullet}อาชีพ (cl54/cl89) : " +
-                    $"{(reporting.Concat(historical).FirstOrDefault(t => !string.IsNullOrWhiteSpace(t.Occupation))?.Occupation ?? "-")}");
+        var occTxn = reporting.Concat(historical).FirstOrDefault(t =>
+            !string.IsNullOrWhiteSpace(t.Occupation) || !string.IsNullOrWhiteSpace(t.OccupationOther));
+        s.Lines.Add($"{Bullet}อาชีพ (cl89/cl54 / cl114/cl104) : " +
+                    $"{(occTxn != null ? Rule203IncomeMismatch.OccupationText(occTxn) : "-")}");
 
         var ib = reporting.Where(t => t.Direction == "IB").ToList();
         var ob = reporting.Where(t => t.Direction == "OB").ToList();
@@ -265,19 +267,25 @@ public static class PersonExplainer
         s.Lines.Add($"{Bullet}ขั้นที่ 2 — ช่วงเวลา: ตั้งแต่ {cutoff:yyyy-MM-dd} เป็นต้นไป " +
                     $"→ {window.Count:N0} รายการ");
 
-        string occ = window.FirstOrDefault(t => !string.IsNullOrWhiteSpace(t.Occupation))?.Occupation ?? "";
-        decimal? expected = OccupationReader.FindExpectedIncome(occ, ctx.OccupationMap);
-        s.Lines.Add($"{Bullet}ขั้นที่ 3 — อาชีพ \"{(occ.Length > 0 ? occ : "-")}\" → รายได้ที่คาดหมาย " +
-                    $"{(expected.HasValue ? Money(expected.Value) + " บาท/เดือน" : "ไม่พบในไฟล์ mapper")}");
+        var (match, occTxn) = Rule203IncomeMismatch.ResolveIncome(window, ctx.Occupations);
+        string occ = occTxn != null ? Rule203IncomeMismatch.OccupationText(occTxn) : "-";
+        decimal expected = match?.Entry.ExpectedIncome ?? ctx.Config.Rule203OtherMonthlyIncome;
+        string how = match == null
+            ? $"{Money(expected)} บาท/เดือน (ไม่พบในไฟล์ lookup → ใช้รายได้อาชีพอื่น ๆ)"
+            : $"{Money(expected)} บาท/เดือน " +
+              (match.FromOtherColumn
+                  ? $"(cl114/cl104 fuzzy ตรงกับ \"{match.MatchedValue.Trim()}\" {match.Score:P0})"
+                  : $"(ตรงกับ \"{match.MatchedValue.Trim()}\")");
+        s.Lines.Add($"{Bullet}ขั้นที่ 3 — อาชีพ \"{occ}\" → รายได้ที่คาดหมาย {how}");
 
-        if (expected == null || expected <= 0)
+        if (expected <= 0)
         {
             s.Lines.Add(Arrow + "ไม่เข้าเกณฑ์ — ไม่มีรายได้อ้างอิงให้เทียบ (rule ข้ามบุคคลนี้)");
             return With(s, ExplainVerdict.Skipped);
         }
 
-        decimal threshold = expected.Value * ctx.Config.Rule203Multiplier;
-        s.Lines.Add($"{Bullet}ขั้นที่ 4 — เกณฑ์ = {Money(expected.Value)} × {ctx.Config.Rule203Multiplier} " +
+        decimal threshold = expected * ctx.Config.Rule203Multiplier;
+        s.Lines.Add($"{Bullet}ขั้นที่ 4 — เกณฑ์ = {Money(expected)} × {ctx.Config.Rule203Multiplier} " +
                     $"= {Money(threshold)}");
 
         bool anyHit = false;

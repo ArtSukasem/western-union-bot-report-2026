@@ -71,8 +71,8 @@ public static class RspReader
                 txn.FirstName = Get(60);
                 txn.LastName = Get(61);
                 txn.PersonId = Get(74);
-                string occ = Get(89);
-                txn.Occupation = IsOther(occ) ? Get(114) : occ;
+                txn.Occupation = Get(89);
+                txn.OccupationOther = Get(114);
                 txn.Nationality = Get(66);
                 txn.AddressLines = new[] { Get(68), Get(69), Get(70), Get(71), Get(72), Get(73) };
                 txn.PostalCode = Get(73);
@@ -92,8 +92,8 @@ public static class RspReader
                 txn.FirstName = Get(25);
                 txn.LastName = Get(26);
                 txn.PersonId = Get(39);
-                string occ = Get(54);
-                txn.Occupation = IsOther(occ) ? Get(104) : occ;
+                txn.Occupation = Get(54);
+                txn.OccupationOther = Get(104);
                 txn.Nationality = Get(31);
                 txn.AddressLines = new[] { Get(33), Get(34), Get(35), Get(36), Get(37), Get(38) };
                 txn.PostalCode = Get(38);
@@ -107,11 +107,6 @@ public static class RspReader
 
         return new ReadResult(results, skippedByStatus);
     }
-
-    private static bool IsOther(string occ) =>
-        string.IsNullOrWhiteSpace(occ) ||
-        occ.Equals("OTHER", StringComparison.OrdinalIgnoreCase) ||
-        occ.Equals("OTHERS", StringComparison.OrdinalIgnoreCase);
 
     public static DateTime? ParseDate(string s)
     {

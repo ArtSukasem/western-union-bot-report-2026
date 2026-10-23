@@ -11,7 +11,7 @@ public class TabSettings : UserControl
     // Rule 202
     private NumericUpDown _n202Months, _n202Mult;
     // Rule 203
-    private NumericUpDown _n203Months, _n203Mult;
+    private NumericUpDown _n203Months, _n203Mult, _n203OccFuzzy, _n203OtherIncome;
     private TextBox _tb203Branches;
     // Rule 206
     private TextBox _tb206Branches;
@@ -88,6 +88,10 @@ public class TabSettings : UserControl
         AddRow(gb, "จำนวนเดือนย้อนหลัง (Retail):", _n203Months = MakeNum(1, 24, 3));
         AddRow(gb, "ตัวคูณ (เท่า):", _n203Mult = MakeNum(1m, 20m, 3m, 1));
         AddRow(gb, "สาขาที่ยกเว้น (Online) — บรรทัดละ 1:", _tb203Branches = MakeTextBox("ATH170025"), labelTop: true);
+        AddRow(gb, "อาชีพ cl114/cl104 — ความคล้ายขั้นต่ำ fuzzy (%) (ใช้กับ DS_SBE field 16 ด้วย):",
+            _n203OccFuzzy = MakeNum(50, 100, 80));
+        AddRow(gb, "รายได้/เดือน กรณีอาชีพอื่น ๆ (ไม่พบในไฟล์ lookup) (บาท):",
+            _n203OtherIncome = MakeNum(0m, 10000000m, 49999m, 0));
         return gb;
     }
 
@@ -141,6 +145,8 @@ public class TabSettings : UserControl
             Rule203RollingMonths = (int)_n203Months.Value,
             Rule203Multiplier = _n203Mult.Value,
             Rule203ExcludedBranches = SplitLines(_tb203Branches.Text),
+            OccupationFuzzyThresholdPercent = (int)_n203OccFuzzy.Value,
+            Rule203OtherMonthlyIncome = _n203OtherIncome.Value,
             Rule206HighRiskBranches = SplitLines(_tb206Branches.Text),
             Rule206PrincipalThreshold = _n206Principal.Value,
             Rule206TxnCountThreshold = (int)_n206Count.Value,
@@ -164,6 +170,8 @@ public class TabSettings : UserControl
         _n203Months.Value = c.Rule203RollingMonths;
         _n203Mult.Value = c.Rule203Multiplier;
         _tb203Branches.Text = string.Join(Environment.NewLine, c.Rule203ExcludedBranches ?? new());
+        _n203OccFuzzy.Value = Math.Clamp(c.OccupationFuzzyThresholdPercent, 50, 100);
+        _n203OtherIncome.Value = Math.Clamp(c.Rule203OtherMonthlyIncome, 0m, 10000000m);
         _tb206Branches.Text = string.Join(Environment.NewLine, c.Rule206HighRiskBranches ?? new());
         _n206Principal.Value = c.Rule206PrincipalThreshold;
         _n206Count.Value = c.Rule206TxnCountThreshold;

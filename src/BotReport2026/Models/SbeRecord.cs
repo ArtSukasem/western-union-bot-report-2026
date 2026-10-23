@@ -15,7 +15,7 @@ public class SbeRecord
     public string DataPeriod { get; set; } = "";
     // 3 — MTCN (cl1)
     public string ReferenceNo { get; set; } = "";
-    // 4 — rule number, e.g. "101"
+    // 4 — rule number, e.g. "202"; Rule 101 hits read "101;211"
     public string BehaviorType { get; set; } = "";
     // 5 — description looked up from behavior_descriptions.xlsx
     public string BehaviorDescription { get; set; } = "";

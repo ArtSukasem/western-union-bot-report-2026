@@ -55,7 +55,7 @@ void ReadCheck(List<InputFile> files, string direction)
         var r0 = res.Rows[0];
         Console.WriteLine($"   first row   : MTCN={r0.MTCN} date={r0.TransactionDate:yyyy-MM-dd} " +
                           $"time={r0.TransactionTime} amt={r0.Principal} branch={r0.BranchAccountId} " +
-                          $"name=\"{r0.FullName}\" id={r0.PersonId} occ=\"{r0.Occupation}\"");
+                          $"name=\"{r0.FullName}\" id={r0.PersonId} occ=\"{r0.Occupation}\" occOther=\"{r0.OccupationOther}\"");
     }
 }
 
@@ -68,6 +68,9 @@ ReadCheck(ob.Where(IsRep).ToList(), "OB");
 // ---------------------------------------------------------------------------
 string lookupDir = Path.Combine(root, "SAE-lookups");
 var reference = ReferenceDataReader.Read(lookupDir, m => Console.WriteLine($"   {m}"));
+var occupations = OccupationReader.Read(
+    Path.Combine(root, "lookups", "list_of_occupation_expected_monthly_income.xlsx"),
+    new AppConfig().OccupationFuzzyThresholdPercent / 100.0);
 
 Console.WriteLine("\n===== FIELD CHECK (v3 derived fields) =====");
 
@@ -89,7 +92,9 @@ void FieldCheck(List<InputFile> files, string direction)
     Tally("IdTypeCode", r => ClassificationTables.ResolveIdType(r.IdType));
     Tally("IssuerCountry(ISO2)", r => reference.ToIso2(r.IdIssuerCountry));
     Tally("CounterpartyType", r => reference.ResolveCounterpartyType(r.Nationality));
-    Tally("OccupationCode", r => ClassificationTables.ResolveOccupation(r.Occupation));
+    Tally("OccupationCode", r =>
+        occupations.Resolve(r.Occupation, r.OccupationOther)?.Entry.BotCode is { Length: > 0 } code
+            ? code : ClassificationTables.OccupationOther);
 
     int unmappedCountry = rows.Count(r => !string.IsNullOrWhiteSpace(r.IdIssuerCountry) &&
                                           reference.ToIso2(r.IdIssuerCountry).Length == 0);

@@ -89,12 +89,26 @@ whitespace (dates arrive as `" 03/23/2026"`) and strips the `="` / `"` wrapper.
 ## Occupation map — `OccupationReader`
 [OccupationReader.cs](../BotReport2026/Readers/OccupationReader.cs)
 
-- Sheet matched by name containing `"Occupation"`. Single header row; data from
-  row 2. `cl1` = occupation name, `cl6` = expected monthly income.
-- `FindExpectedIncome` resolves an RSP occupation string in three steps: exact
-  dictionary match → a hardcoded `FallbackMap` (handles known RSP↔mapper naming
-  mismatches like `HOUSEWIFE` → `Housewife/Child Care`) → case-insensitive
-  substring match in either direction.
+- Sheet matched by name containing `"Occupation"`. `cl1` = English occupation
+  name; the income and BoT-code columns are located by their header text
+  (`Expected Monthly Income`, `BoT code`) in the first five rows, because some
+  versions carry an extra `cl1, cl2, …` row above the headers. Without those
+  headers it falls back to `cl6` / `cl7` with data from row 2. Rows naming
+  `OTHERS` and note rows written in Thai are skipped; an income that is a range
+  (`0 – 5,000`) is read as unknown.
+- `OccupationLookup.Resolve(cl89|cl54, cl114|cl104)` serves both Rule 203-Retail
+  (expected income) and DS_SBE field 16 (BoT code):
+  1. the dropdown value `cl89` / `cl54` matched exactly (trimmed, case- and
+     whitespace-insensitive); blank / `OTHER` / `OTHERS` never match;
+  2. otherwise the free text `cl114` / `cl104` fuzzy-matched against every name:
+     similarity = 1 − Damerau-Levenshtein distance ÷ longer length, best score
+     at or above `OccupationFuzzyThresholdPercent` (default 80);
+  3. otherwise no match — field 16 = `2003500015` (อื่น ๆ), and Rule 203 uses
+     `Rule203OtherMonthlyIncome` (default 49,999) as the expected income, as it
+     also does when the matched row has no income.
+  There is no substring matching: the lookup's short alias rows (`Art`, `Gas`,
+  `Civil`) would otherwise match unrelated text. To catch a recurring spelling,
+  add it as an alias row in the lookup file.
 
 ## Input folder scanning — `InputFolderScanner`
 [InputFolderScanner.cs](../BotReport2026/Readers/InputFolderScanner.cs)
@@ -123,7 +137,7 @@ single-header-row; a missing file is logged and leaves its table empty.
 |---|---|---|
 | `address_branch.xlsx` | account → 7 address parts (80 branches) | DS_SAE field 15 |
 | `country_code.xlsx` | country name → ISO2 (146 entries) | DS_SBE 7, DS_SAE 4 |
-| `behavior_descriptions.xlsx` | rule code → คำอธิบายพฤติกรรม | DS_SBE field 5 |
+| `behavior_descriptions.xlsx` | rule code → คำอธิบายพฤติกรรม | DS_SBE field 5 (except Rule 101, which reports field 4 = `101;211` with a combined 101 + 211 text from `ClassificationTables`) |
 | `edd_reasons.xlsx` | 8 dropdown options | DS_SAE field 7 |
 
 `ReferenceData.ToIso2` exists because RSP mixes formats in the same column —
@@ -132,8 +146,8 @@ corrects non-ISO values like `TP`→`TL`), then any remaining two-letter value
 passes through, then `""`. Applying the spec's literal `== "TH"` test instead
 would misclassify thousands of Thai customers as foreign.
 
-Fixed BoT enumerations (Identification Type Code, Occupation Code, counterparty /
-channel / transaction-type codes) are in
+Fixed BoT enumerations (Identification Type Code, counterparty / channel /
+transaction-type codes, and the `อื่น ๆ` fallback for Occupation Code) are in
 [ClassificationTables.cs](../BotReport2026/Readers/ClassificationTables.cs)
 instead — they are stable, unlike branches and countries.
 

@@ -14,10 +14,18 @@ public class AppConfig
     public int Rule202PriorMonths { get; set; } = 6;
     public decimal Rule202Multiplier { get; set; } = 3m;
 
+    // Occupation lookup (Rule 203 retail income + DS_SBE field 16 BoT code): minimum
+    // similarity, in percent, for matching the free-text cl114 / cl104 when the
+    // cl89 / cl54 dropdown value is not in the lookup.
+    public int OccupationFuzzyThresholdPercent { get; set; } = 80;
+
     // Rule 203 retail
     public int Rule203RollingMonths { get; set; } = 3;
     public decimal Rule203Multiplier { get; set; } = 3m;
     public List<string> Rule203ExcludedBranches { get; set; } = new() { "ATH170025" };
+    // Expected monthly income for a person whose occupation matches no lookup row with an
+    // income (the "อื่น ๆ" case) — used instead of skipping them.
+    public decimal Rule203OtherMonthlyIncome { get; set; } = 49999m;
 
     // Rule 206
     public List<string> Rule206HighRiskBranches { get; set; } = new();

@@ -11,7 +11,10 @@ public class RspTransaction
     public string FirstName { get; set; } = "";
     public string LastName { get; set; } = "";
     public string PersonId { get; set; } = "";
+    /// <summary>cl89 / cl54 — the occupation dropdown value, as typed in RSP (may be OTHERS).</summary>
     public string Occupation { get; set; } = "";
+    /// <summary>cl114 / cl104 — free-text occupation, filled when the dropdown says OTHERS.</summary>
+    public string OccupationOther { get; set; } = "";
     public string SourceFile { get; set; } = "";
     /// <summary>1-based line number in <see cref="SourceFile"/>, as Excel shows it
     /// (row 1 = header). Reported in error.xlsx so a bad value can be found.</summary>

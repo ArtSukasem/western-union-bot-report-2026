@@ -23,6 +23,8 @@ start of every run (`MainForm.StartRun`), not only when the user clicks "บั�
 | `Rule203RollingMonths` | 3 | Rule 203 (retail) |
 | `Rule203Multiplier` | 3 | Rule 203 (retail) |
 | `Rule203ExcludedBranches` | `["ATH170025"]` | Rule 203 (retail) — branches treated as online, excluded from retail check |
+| `Rule203OtherMonthlyIncome` | `49999` | Rule 203 (retail) — expected monthly income for a person whose occupation matches no lookup row with an income (the อื่น ๆ case), instead of skipping them |
+| `OccupationFuzzyThresholdPercent` | `80` | Minimum similarity (%) for matching the free-text `cl114` / `cl104` against the occupation lookup when `cl89` / `cl54` has no exact match — used by Rule 203 (retail) income and DS_SBE field 16. Set on Tab 2 in the Rule 203 group |
 | `Rule206HighRiskBranches` | `[]` (empty) | Rule 206 — empty means the rule is a no-op |
 | `Rule206PrincipalThreshold` | 700000 | Rule 206 |
 | `Rule206TxnCountThreshold` | 20 | Rule 206 |

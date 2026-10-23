@@ -1,9 +1,9 @@
-# program/ — Claude instructions index
+# src/ — Claude instructions index
 
 Reference docs for the `BotReport2026` C# WinForms app (the compiled
 implementation of the SBR report generator described in the repo-root
 [CLAUDE.md](../../CLAUDE.md)). Read these before making changes under
-`program/BotReport2026/`.
+`src/BotReport2026/`.
 
 - [01-architecture.md](01-architecture.md) — project layout, control flow, how to add a rule.
 - [02-detection-rules.md](02-detection-rules.md) — exact logic for Rules 101, 202, 203, 206, 208, 209, 212, 301.

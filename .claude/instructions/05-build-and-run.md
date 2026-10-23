@@ -8,8 +8,8 @@ Target framework: `net8.0-windows` (WinForms, `OutputType=WinExe`). Solution fil
 ## Build / run (dev)
 
 ```bash
-dotnet build "program/BotReport2026/BotReport2026.csproj"
-dotnet run --project "program/BotReport2026/BotReport2026.csproj"
+dotnet build "src/BotReport2026/BotReport2026.csproj"
+dotnet run --project "src/BotReport2026/BotReport2026.csproj"
 ```
 
 Requires the Windows Desktop runtime (WinForms) — this will not build/run on
@@ -23,10 +23,10 @@ self-contained, `win-x64`, not single-file, no ReadyToRun. Output goes to
 `bin\Release\net8.0-windows\publish\win-x64\`.
 
 ```bash
-dotnet publish "program/BotReport2026/BotReport2026.csproj" -c Release -p:PublishProfile=FolderProfile
+dotnet publish "src/BotReport2026/BotReport2026.csproj" -c Release -p:PublishProfile=FolderProfile
 ```
 
-The `publish/` folder at `program/BotReport2026/publish/` (checked into this
+The `publish/` folder at `src/BotReport2026/publish/` (checked into this
 working tree, alongside `EPPlus.dll`, `Newtonsoft.Json.dll`, etc.) is an example
 of that publish output. `Releases/` at the repo root holds zipped release builds
 (e.g. `Bot Report v1.0_20260616.zip`).
@@ -46,7 +46,7 @@ On first launch (no `config.json` present), `ConfigManager.Load()` returns
 `AppConfig` defaults. With no `workspace.json` either, the working folder is the
 repo checkout when running from a dev build, otherwise `bot-report-files/` beside
 the exe. `Workspace.EnsureFolders()` then creates `input-rsp-inbound/`,
-`input-rsp-outbound/`, `input-transaction-report/`, `lookups/`, `mapper/`,
+`input-rsp-outbound/`, `input-transaction-report/`, `lookups/`,
 `SAE-lookups/` and `report-results/` inside it, so the user has somewhere to drop
 files even on a fresh install. The reference files themselves (sanction list,
 occupation mapper, SAE lookups) still have to be put there — switching to a folder

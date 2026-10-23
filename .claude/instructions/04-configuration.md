@@ -48,8 +48,7 @@ sub-folder ("job") name each part of the run uses inside it:
 |---|---|
 | `input-rsp-inbound/`, `input-rsp-outbound/` | RSP input (direction comes from the folder) |
 | `input-transaction-report/` | Transaction Report input |
-| `lookups/` | `saction_list.xlsx`, `financial_crime_individuals_suspicious_counter_customer_behavior.xlsx` |
-| `mapper/` | `list_of_occupation_expected_monthly_income.xlsx` |
+| `lookups/` | `saction_list.xlsx`, `financial_crime_individuals_suspicious_counter_customer_behavior.xlsx`, `list_of_occupation_expected_monthly_income.xlsx` |
 | `SAE-lookups/` | DS_SBE/DS_SAE reference tables; regenerate with `python tools/extract_v3_lookups.py` |
 | `report-results/` | `DS_SBE_*.csv`, `DS_SAE_*.xlsm`, `error.xlsx` |
 
@@ -79,7 +78,13 @@ itself stays beside the executable — it is per-install, not per-working-folder
 `MainForm.ApplyWorkspaceChange(previousRoot)` runs on every change: it drops the
 engine's cached `RuleContext` (it belongs to the old folder), rescans the new
 input folders, re-points the output label, and — when the new folder has none of
-the reference files — offers to copy `lookups/`, `mapper/` and `SAE-lookups/`
+the reference files — offers to copy `lookups/` and `SAE-lookups/`
 across from the previous folder (`Workspace.CopyReferenceFiles`, which never
 overwrites an existing file). Those tables are per-install data, not per-month,
 so a freshly created folder would otherwise start empty and fail mid-run.
+
+The occupation mapper used to sit in its own `mapper/` sub-folder. Working folders
+set up by earlier versions still have one, so `Workspace.EnsureFolders()` moves its
+files into `lookups/` (never overwriting a file already there) and deletes `mapper/`
+once it is empty; `CopyReferenceFiles` likewise copies an old folder's `mapper/`
+into `lookups/`.

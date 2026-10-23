@@ -211,7 +211,7 @@ public class TabFileSelection : UserControl
         };
         layout.Controls.Add(hint);
 
-        // Reference files status (mapper + lookups)
+        // Reference files status (all three live in lookups/)
         var grpRef = new GroupBox
         {
             Text = "ไฟล์อ้างอิง (จำเป็นต้องมีก่อนรัน)",
@@ -244,7 +244,7 @@ public class TabFileSelection : UserControl
         _lblSanctionStatus = MakeStatusLabel();
         _lblCrimeStatus = MakeStatusLabel();
 
-        var btnOpenMapper = new Button { Text = "📂 เปิดโฟลเดอร์ mapper", AutoSize = true, Anchor = AnchorStyles.Left };
+        var btnOpenMapper = new Button { Text = "📂 เปิดโฟลเดอร์ lookups", AutoSize = true, Anchor = AnchorStyles.Left };
         var btnOpenLookups = new Button { Text = "📂 เปิดโฟลเดอร์ lookups", AutoSize = true, Anchor = AnchorStyles.Left };
         var btnOpenLookups2 = new Button { Text = "📂 เปิดโฟลเดอร์ lookups", AutoSize = true, Anchor = AnchorStyles.Left };
         btnOpenMapper.Click += (_, _) => OpenFolder(Path.GetDirectoryName(MainForm.OccupationMapPath)!);

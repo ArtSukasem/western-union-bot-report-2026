@@ -20,9 +20,13 @@ public static class Workspace
     public const string RspOutboundFolder = "input-rsp-outbound";
     public const string TxnReportFolder = "input-transaction-report";
     public const string LookupsFolder = "lookups";
-    public const string MapperFolder = "mapper";
     public const string ReferenceFolder = "SAE-lookups";
     public const string ResultsFolder = "report-results";
+
+    /// <summary>Where the occupation mapper lived before it moved into lookups/.
+    /// Working folders set up by earlier versions still have it; see
+    /// <see cref="MigrateLegacyMapperFolder"/>.</summary>
+    private const string LegacyMapperFolder = "mapper";
 
     /// <summary>Folder created beside the executable when no working folder has been
     /// picked and the app is not running from a repo checkout.</summary>
@@ -40,7 +44,6 @@ public static class Workspace
     public static string InputRspOutboundDir => Path.Combine(_root, RspOutboundFolder);
     public static string InputTxnReportDir => Path.Combine(_root, TxnReportFolder);
     public static string LookupsDir => Path.Combine(_root, LookupsFolder);
-    public static string MapperDir => Path.Combine(_root, MapperFolder);
 
     /// <summary>DS_SBE/DS_SAE reference tables, produced by tools/extract_v3_lookups.py.</summary>
     public static string ReferenceDataDirectory => Path.Combine(_root, ReferenceFolder);
@@ -50,13 +53,13 @@ public static class Workspace
     public static string CrimeListPath =>
         Path.Combine(LookupsDir, "financial_crime_individuals_suspicious_counter_customer_behavior.xlsx");
     public static string OccupationMapPath =>
-        Path.Combine(MapperDir, "list_of_occupation_expected_monthly_income.xlsx");
+        Path.Combine(LookupsDir, "list_of_occupation_expected_monthly_income.xlsx");
 
     /// <summary>Every folder the app reads from or writes to, in display order.</summary>
     public static IEnumerable<string> AllFolders => new[]
     {
         InputRspInboundDir, InputRspOutboundDir, InputTxnReportDir,
-        LookupsDir, MapperDir, ReferenceDataDirectory, OutputDirectory
+        LookupsDir, ReferenceDataDirectory, OutputDirectory
     };
 
     /// <summary>Creates the job sub-folders so users have somewhere to drop files.</summary>
@@ -66,6 +69,28 @@ public static class Workspace
         {
             try { Directory.CreateDirectory(dir); } catch { }
         }
+        MigrateLegacyMapperFolder();
+    }
+
+    /// <summary>
+    /// Moves files out of a mapper/ folder left by earlier versions into lookups/, then
+    /// removes mapper/ once it is empty. A file already present in lookups/ wins and the
+    /// old copy is left where it is, so nothing is overwritten.
+    /// </summary>
+    private static void MigrateLegacyMapperFolder()
+    {
+        string legacy = Path.Combine(_root, LegacyMapperFolder);
+        if (!Directory.Exists(legacy)) return;
+        try
+        {
+            foreach (var file in Directory.GetFiles(legacy))
+            {
+                string target = Path.Combine(LookupsDir, Path.GetFileName(file));
+                if (!File.Exists(target)) File.Move(file, target);
+            }
+            if (Directory.GetFileSystemEntries(legacy).Length == 0) Directory.Delete(legacy);
+        }
+        catch { }
     }
 
     /// <summary>
@@ -85,7 +110,7 @@ public static class Workspace
     }
 
     /// <summary>
-    /// Copies reference files (lookups, mapper, SAE-lookups) from <paramref name="fromRoot"/>
+    /// Copies reference files (lookups, SAE-lookups) from <paramref name="fromRoot"/>
     /// into the current working folder, skipping any that already exist there. Returns the
     /// number copied. Used when the user moves to a fresh working folder — those tables are
     /// per-install data, not per-month, so a new folder would otherwise start empty.
@@ -93,10 +118,13 @@ public static class Workspace
     public static int CopyReferenceFiles(string fromRoot)
     {
         int copied = 0;
-        foreach (var folder in new[] { LookupsFolder, MapperFolder, ReferenceFolder })
+        // An older working folder may still keep the mapper in mapper/; it lands in lookups/.
+        foreach (var (from, to) in new[] {
+            (LookupsFolder, LookupsFolder), (LegacyMapperFolder, LookupsFolder),
+            (ReferenceFolder, ReferenceFolder) })
         {
-            string src = Path.Combine(fromRoot, folder);
-            string dst = Path.Combine(_root, folder);
+            string src = Path.Combine(fromRoot, from);
+            string dst = Path.Combine(_root, to);
             if (!Directory.Exists(src)) continue;
             if (string.Equals(Path.GetFullPath(src), Path.GetFullPath(dst),
                     StringComparison.OrdinalIgnoreCase)) continue;
@@ -127,7 +155,8 @@ public static class Workspace
         string saeDir = Path.Combine(root, ReferenceFolder);
         return File.Exists(Path.Combine(root, LookupsFolder, Path.GetFileName(SanctionListPath))) ||
                File.Exists(Path.Combine(root, LookupsFolder, Path.GetFileName(CrimeListPath))) ||
-               File.Exists(Path.Combine(root, MapperFolder, Path.GetFileName(OccupationMapPath))) ||
+               File.Exists(Path.Combine(root, LookupsFolder, Path.GetFileName(OccupationMapPath))) ||
+               File.Exists(Path.Combine(root, LegacyMapperFolder, Path.GetFileName(OccupationMapPath))) ||
                (Directory.Exists(saeDir) && Directory.GetFiles(saeDir, "*.xlsx").Length > 0);
     }
 

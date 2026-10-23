@@ -70,7 +70,7 @@ public partial class MainForm : Form
     /// <summary>
     /// Re-points the app after the user picked a different working folder. The loaded
     /// context belongs to the old folder, so it is dropped; reference files (lookups,
-    /// mapper, SAE-lookups) are per-install rather than per-month, so a folder that has
+    /// SAE-lookups) are per-install rather than per-month, so a folder that has
     /// none of them offers to copy them over from the folder in use before.
     /// </summary>
     internal void ApplyWorkspaceChange(string previousRoot)
@@ -78,7 +78,7 @@ public partial class MainForm : Form
         if (Workspace.IsMissingReferenceFiles() && Workspace.HasReferenceFiles(previousRoot))
         {
             var copy = MessageBox.Show(
-                "โฟลเดอร์ทำงานใหม่ยังไม่มีไฟล์อ้างอิง (lookups, mapper, SAE-lookups)\n\n" +
+                "โฟลเดอร์ทำงานใหม่ยังไม่มีไฟล์อ้างอิง (lookups, SAE-lookups)\n\n" +
                 $"คัดลอกจากโฟลเดอร์เดิมหรือไม่?\n{previousRoot}",
                 "คัดลอกไฟล์อ้างอิง", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (copy == DialogResult.Yes)

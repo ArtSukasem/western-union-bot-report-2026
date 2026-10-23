@@ -18,14 +18,13 @@ by June 15).
 
 1. Get the latest build — either the published app from the `Releases/`
    folder (unzip it) or run from source with .NET 8 installed
-   (`dotnet run --project program/BotReport2026/BotReport2026.csproj`).
+   (`dotnet run --project src/BotReport2026/BotReport2026.csproj`).
 2. Launch **BotReport2026.exe**. On first launch it automatically creates
    the folders it needs next to itself:
    - `input-rsp-inbound/`
    - `input-rsp-outbound/`
    - `input-transaction-report/`
    - `lookups/`
-   - `mapper/`
    - `report-results/`
 3. The app must stay in the same relative position inside the folder
    structure it was built/extracted into — don't move the `.exe` on its own
@@ -42,8 +41,7 @@ No installer, no admin rights, no internet connection required.
 | `input-rsp-inbound/` | This month's and prior months' **inbound** (received money) RSP files |
 | `input-rsp-outbound/` | This month's and prior months' **outbound** (sent money) RSP files |
 | `input-transaction-report/` | This month's (and ideally prior months') `Transaction-Report *` files (online channel) |
-| `lookups/` | `saction_list.xlsx` (UN + TH sanction lists), the financial-crime / suspicious-retail-customer list |
-| `mapper/` | The occupation → expected monthly income mapping file |
+| `lookups/` | `saction_list.xlsx` (UN + TH sanction lists), the financial-crime / suspicious-retail-customer list, and the occupation → expected monthly income mapping file |
 | `report-results/` | Where `DS_SBE_yyyyMM.xlsx` and `DS_SAE_yyyyMM.xlsx` are written after a run |
 
 **RSP direction comes from the folder, not the file name.** Every file you
@@ -144,7 +142,7 @@ error if the file is missing entirely, not just outdated).
    months' files from previous runs in place.
 2. Copy this month's Transaction Report file into
    `input-transaction-report/`.
-3. Confirm `lookups/` and `mapper/` still have current versions of the
+3. Confirm `lookups/` still has current versions of the
    sanction list, crime/suspicious list, and occupation map.
 4. Launch the app (or click 🔄 Reload if it's already open).
 5. On **Tab 1**: confirm the auto-detected reporting month is correct, and
@@ -186,7 +184,7 @@ that direction's transactions are reported; if both cross independently,
 one record covering both is produced.
 
 All numeric thresholds above are the **defaults** — every one of them is
-adjustable on Tab 2 (see [04-configuration.md](../../program/.claude/instructions/04-configuration.md)
+adjustable on Tab 2 (see [04-configuration.md](../instructions/04-configuration.md)
 for the full technical list if you need exact field names).
 
 ---
@@ -196,7 +194,7 @@ for the full technical list if you need exact field names).
 | Symptom | Likely cause / fix |
 |---|---|
 | Warning: "กรุณาเลือกไฟล์อย่างน้อย 1 ไฟล์ก่อนรัน" (please select at least one file) when clicking Run | No files were found for the **reporting month** specifically. Check the filenames contain a recognizable month code, and that Tab 3's month picker matches. |
-| A reference file shows ❌ on Tab 1 | The file is missing from `lookups/` or `mapper/`, or was renamed. Use the 📂 folder buttons to check, drop the correct file in, then 🔄 Reload. |
+| A reference file shows ❌ on Tab 1 | The file is missing from `lookups/`, or was renamed. Use the 📂 folder buttons to check, drop the correct file in, then 🔄 Reload. |
 | Rule 202 or 203 isn't flagging anyone you expected | Check the two RSP folders actually have enough **prior months'** files present — these rules need rolling history, not just the reporting month. |
 | An RSP file is listed under the wrong direction | It's in the wrong folder. Direction is decided purely by whether the file sits in `input-rsp-inbound/` or `input-rsp-outbound/` — the file name is not consulted. Move it and 🔄 Reload. |
 | Wrong reporting month was auto-detected | Change it manually with the month picker on Tab 3 — Tab 1's file lists re-sort automatically to match. |

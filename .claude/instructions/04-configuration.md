@@ -20,6 +20,7 @@ start of every run (`MainForm.StartRun`), not only when the user clicks "บั�
 | `SaeOnlineChannelBranches` | `["ATH170025", "ATH170014"]` | DS_SAE fields 11 & 15 — treated as the online channel (`330004`) with no physical location. Same branches as `Rule203ExcludedBranches` by default, but a **separate list** — changing one does not change the other |
 | `Rule202PriorMonths` | 6 | Rule 202 |
 | `Rule202Multiplier` | 3 | Rule 202 |
+| `Rule202Branches` | `["ATH170025", "ATH170014"]` | Rule 202 (outbound only) — the only branches counted, history and reporting month alike. Empty = every branch. A `config.json` without this key gets the default |
 | `Rule203RollingMonths` | 3 | Rule 203 (retail) |
 | `Rule203Multiplier` | 3 | Rule 203 (retail) |
 | `Rule203ExcludedBranches` | `["ATH170025", "ATH170014"]` | Rule 203 (retail, outbound only) — branches treated as online, excluded from retail check. A `config.json` saved before this default changed keeps its own list; add `ATH170014` on Tab 2 |

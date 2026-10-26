@@ -172,59 +172,54 @@ public static class PersonExplainer
     {
         var s = Section($"Rule 202 — ยอดผิดปกติเทียบค่าเฉลี่ย ({ctx.Config.Rule202PriorMonths} เดือนย้อนหลัง " +
                         $"× {ctx.Config.Rule202Multiplier})", ExplainVerdict.Miss);
-        bool anyHit = false;
 
-        foreach (var dir in new[] { "IB", "OB" })
+        var branches = Rule202AbnormalVolume.IncludedBranches(ctx.Config);
+        s.Lines.Add($"{Bullet}ขั้นที่ 0 — เฉพาะขาออก (OB) สาขา " +
+                    (branches.Count == 0 ? "ทั้งหมด" : string.Join(", ", branches)));
+
+        var inScope = reporting.Where(t => Rule202AbnormalVolume.IsInScope(t, branches)).ToList();
+        if (inScope.Count == 0)
         {
-            var dirReporting = reporting.Where(t => t.Direction == dir).ToList();
-            s.Lines.Add($"{Bullet}[{dir}]");
-            if (dirReporting.Count == 0)
-            {
-                s.Lines.Add($"{Bullet}   ไม่มีธุรกรรมในเดือนที่รายงาน — ข้าม");
-                continue;
-            }
-
-            // Same filter as the rule: historical rows never include the reporting month.
-            var monthTotals = historical
-                .Where(t => t.Direction == dir && t.TransactionDate.HasValue)
-                .Where(t => t.TransactionDate!.Value.Year != ctx.ReportingMonth.Year ||
-                            t.TransactionDate.Value.Month != ctx.ReportingMonth.Month)
-                .GroupBy(t => (year: t.TransactionDate!.Value.Year, month: t.TransactionDate.Value.Month))
-                .ToDictionary(g => g.Key, g => g.Sum(t => t.Principal));
-
-            if (monthTotals.Count == 0)
-            {
-                s.Lines.Add($"{Bullet}   ไม่มีประวัติย้อนหลัง (ลูกค้าใหม่) — ไม่เข้าเกณฑ์ตามข้อกำหนด");
-                continue;
-            }
-
-            var used = monthTotals
-                .OrderByDescending(m => m.Key.year * 100 + m.Key.month)
-                .Take(ctx.Config.Rule202PriorMonths)
-                .ToList();
-
-            s.Lines.Add($"{Bullet}   ขั้นที่ 1 — เดือนที่มีธุรกรรม (นับเฉพาะเดือนที่ไม่เป็นศูนย์ " +
-                        $"เอา {ctx.Config.Rule202PriorMonths} เดือนล่าสุด):");
-            foreach (var m in used)
-                s.Lines.Add($"{Bullet}      {Ym(m.Key)} = {Money(m.Value)}");
-
-            decimal avg = used.Average(m => m.Value);
-            decimal threshold = avg * ctx.Config.Rule202Multiplier;
-            decimal total = dirReporting.Sum(t => t.Principal);
-
-            s.Lines.Add($"{Bullet}   ขั้นที่ 2 — ค่าเฉลี่ย = {Money(used.Sum(m => m.Value))} ÷ {used.Count} = {Money(avg)}");
-            s.Lines.Add($"{Bullet}   ขั้นที่ 3 — เกณฑ์ = {Money(avg)} × {ctx.Config.Rule202Multiplier} = {Money(threshold)}");
-            s.Lines.Add($"{Bullet}   ขั้นที่ 4 — ยอดเดือนที่รายงาน = {Money(total)} " +
-                        $"({dirReporting.Count:N0} รายการ)");
-
-            bool breach = total > threshold;
-            s.Lines.Add($"{Bullet}   {Money(total)} {(breach ? ">" : "≤")} {Money(threshold)} " +
-                        $"→ {(breach ? "เข้าเกณฑ์" : "ไม่เข้าเกณฑ์")}");
-            anyHit |= breach;
+            s.Lines.Add(Arrow + "ไม่มีธุรกรรมขาออกของสาขาดังกล่าวในเดือนที่รายงาน — ไม่เข้าเกณฑ์");
+            return s;
         }
 
-        s.Lines.Add(Arrow + (anyHit ? "เข้าเกณฑ์ Rule 202" : "ไม่เข้าเกณฑ์ Rule 202"));
-        return With(s, anyHit ? ExplainVerdict.Hit : ExplainVerdict.Miss);
+        // Same filter as the rule: historical rows never include the reporting month.
+        var monthTotals = historical
+            .Where(t => Rule202AbnormalVolume.IsInScope(t, branches) && t.TransactionDate.HasValue)
+            .Where(t => t.TransactionDate!.Value.Year != ctx.ReportingMonth.Year ||
+                        t.TransactionDate.Value.Month != ctx.ReportingMonth.Month)
+            .GroupBy(t => (year: t.TransactionDate!.Value.Year, month: t.TransactionDate.Value.Month))
+            .ToDictionary(g => g.Key, g => g.Sum(t => t.Principal));
+
+        if (monthTotals.Count == 0)
+        {
+            s.Lines.Add(Arrow + "ไม่มีประวัติย้อนหลัง (ลูกค้าใหม่) — ไม่เข้าเกณฑ์ตามข้อกำหนด");
+            return s;
+        }
+
+        var used = monthTotals
+            .OrderByDescending(m => m.Key.year * 100 + m.Key.month)
+            .Take(ctx.Config.Rule202PriorMonths)
+            .ToList();
+
+        s.Lines.Add($"{Bullet}ขั้นที่ 1 — เดือนที่มีธุรกรรม (นับเฉพาะเดือนที่ไม่เป็นศูนย์ " +
+                    $"เอา {ctx.Config.Rule202PriorMonths} เดือนล่าสุด):");
+        foreach (var m in used)
+            s.Lines.Add($"{Bullet}   {Ym(m.Key)} = {Money(m.Value)}");
+
+        decimal avg = used.Average(m => m.Value);
+        decimal threshold = avg * ctx.Config.Rule202Multiplier;
+        decimal total = inScope.Sum(t => t.Principal);
+
+        s.Lines.Add($"{Bullet}ขั้นที่ 2 — ค่าเฉลี่ย = {Money(used.Sum(m => m.Value))} ÷ {used.Count} = {Money(avg)}");
+        s.Lines.Add($"{Bullet}ขั้นที่ 3 — เกณฑ์ = {Money(avg)} × {ctx.Config.Rule202Multiplier} = {Money(threshold)}");
+        s.Lines.Add($"{Bullet}ขั้นที่ 4 — ยอดเดือนที่รายงาน = {Money(total)} ({inScope.Count:N0} รายการ)");
+
+        bool hit = total > threshold;
+        s.Lines.Add(Arrow + $"{Money(total)} {(hit ? ">" : "≤")} {Money(threshold)} → " +
+                    (hit ? "เข้าเกณฑ์ Rule 202" : "ไม่เข้าเกณฑ์ Rule 202"));
+        return With(s, hit ? ExplainVerdict.Hit : ExplainVerdict.Miss);
     }
 
     // ------------------------------------------------------------ 203 online

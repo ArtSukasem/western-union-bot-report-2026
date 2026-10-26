@@ -10,6 +10,7 @@ public class TabSettings : UserControl
     private TextBox _tbSaeOnlineBranches;
     // Rule 202
     private NumericUpDown _n202Months, _n202Mult;
+    private TextBox _tb202Branches;
     // Rule 203
     private NumericUpDown _n203Months, _n203Mult, _n203OccFuzzy, _n203OtherIncome;
     private TextBox _tb203Branches;
@@ -79,6 +80,8 @@ public class TabSettings : UserControl
         var gb = MakeGroup("Rule 202 — ยอดรวมผิดปกติ (Rolling Average) (depends on: RSP)");
         AddRow(gb, "จำนวนเดือนย้อนหลัง:", _n202Months = MakeNum(1, 24, 6));
         AddRow(gb, "ตัวคูณ (เท่า):", _n202Mult = MakeNum(1m, 20m, 3m, 1));
+        AddRow(gb, "สาขาที่นำมาคิด (คิดเฉพาะขาออก, ว่าง = ทุกสาขา) — บรรทัดละ 1:",
+            _tb202Branches = MakeTextBox("ATH170025\r\nATH170014"), labelTop: true);
         return gb;
     }
 
@@ -143,6 +146,7 @@ public class TabSettings : UserControl
             SaeOnlineChannelBranches = SplitLines(_tbSaeOnlineBranches.Text),
             Rule202PriorMonths = (int)_n202Months.Value,
             Rule202Multiplier = _n202Mult.Value,
+            Rule202Branches = SplitLines(_tb202Branches.Text),
             Rule203RollingMonths = (int)_n203Months.Value,
             Rule203Multiplier = _n203Mult.Value,
             Rule203ExcludedBranches = SplitLines(_tb203Branches.Text),
@@ -168,6 +172,7 @@ public class TabSettings : UserControl
         _tbSaeOnlineBranches.Text = string.Join(Environment.NewLine, c.SaeOnlineChannelBranches ?? new());
         _n202Months.Value = c.Rule202PriorMonths;
         _n202Mult.Value = c.Rule202Multiplier;
+        _tb202Branches.Text = string.Join(Environment.NewLine, c.Rule202Branches ?? new());
         _n203Months.Value = c.Rule203RollingMonths;
         _n203Mult.Value = c.Rule203Multiplier;
         _tb203Branches.Text = string.Join(Environment.NewLine, c.Rule203ExcludedBranches ?? new());

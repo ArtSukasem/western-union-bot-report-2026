@@ -167,9 +167,9 @@ Rules 201, 204, 205, and 210 are out of scope for this app (not required).
 | Rule | What it flags |
 |---|---|
 | **101** | A transaction's sender/receiver matches the UN or TH/CFR sanction list (name + ID for UN; ID alone for TH). |
-| **202** | This month's total transferred amount for a person is more than **3×** their average monthly amount over the prior 6 months. |
-| **203 (Online)** | An online transaction was held for "proof of income" and later passed EDD anyway — reported with EDD results. |
-| **203 (Retail)** | A person's transfer total over a rolling 3-month window exceeds **3×** the expected monthly income for their stated occupation. |
+| **202** | This month's total **outbound** amount a person sent through the online branches (ATH170025 / ATH170014) is more than **3×** their average monthly amount there over the prior 6 months. Inbound and other branches are not counted. |
+| **203 (Online)** | An online transaction was held for "proof of income" — reported with EDD results pre-filled: passed (Approved / Received / Delivered → result 0) or not passed (Refunded → result 1, reason "EDD ไม่ผ่าน"). |
+| **203 (Retail)** | A person's **outbound** (send money) total over a rolling 3-month window exceeds **3×** the expected monthly income for their stated occupation. Inbound transactions and the online branches ATH170025 / ATH170014 are not counted. |
 | **206** | Transactions at a designated high-risk border branch exceed 700,000 THB/month or 20 transactions/month (currently no branches are designated). |
 | **208** | "Structuring" — many transactions just under 50,000 THB in a single day/week/month that add up past a running total. |
 | **209** | A person transacts across a 16+ hour span within a single day. |

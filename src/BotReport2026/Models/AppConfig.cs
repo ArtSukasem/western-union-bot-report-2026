@@ -10,9 +10,10 @@ public class AppConfig
     // therefore having no physical transaction location.
     public List<string> SaeOnlineChannelBranches { get; set; } = new() { "ATH170025", "ATH170014" };
 
-    // Rule 202
+    // Rule 202 — outbound only, and only these branches (the online channel). Empty = every branch.
     public int Rule202PriorMonths { get; set; } = 6;
     public decimal Rule202Multiplier { get; set; } = 3m;
+    public List<string> Rule202Branches { get; set; } = new() { "ATH170025", "ATH170014" };
 
     // Occupation lookup (Rule 203 retail income + DS_SBE field 16 BoT code): minimum
     // similarity, in percent, for matching the free-text cl114 / cl104 when the

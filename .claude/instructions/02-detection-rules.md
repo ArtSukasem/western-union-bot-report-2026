@@ -39,13 +39,18 @@ identity, not amount, so direction doesn't change their logic.
 ## Rule 202 — Abnormal monthly volume (rolling average)
 [Rule202AbnormalVolume.cs](../BotReport2026/Rules/Rule202AbnormalVolume.cs)
 
-- Builds `(personId, direction) → (year, month) → total principal` from
+- **Scope: outbound (`Direction == "OB"`) at the branches in
+  `Config.Rule202Branches` only** (default `ATH170025`, `ATH170014` — the online
+  channel; empty list = every branch). The filter, `Rule202AbnormalVolume.IsInScope`,
+  applies to both history and reporting month and is shared with the explain tab.
+- Builds `personId → (year, month) → total principal` from in-scope
   `HistoricalRsp`, explicitly excluding the reporting month itself as a
   safety filter.
 - Takes the `Config.Rule202PriorMonths` most recent months **that have activity**
   (months with zero transactions are simply absent from the map, so new customers
-  with no history are skipped entirely) — computed separately per direction.
-- Flags a direction if `reportingMonthTotal(direction) > average(priorMonths(direction)) × Config.Rule202Multiplier`.
+  with no history are skipped entirely).
+- Flags a person if `reportingMonthTotal > average(priorMonths) × Config.Rule202Multiplier`,
+  and reports all their in-scope reporting-month transactions (`RuleCode = "202"`).
 - Defaults: 6 prior months, 3× multiplier.
 
 ## Rule 203 — Income/occupation mismatch

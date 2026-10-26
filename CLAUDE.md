@@ -77,9 +77,10 @@ RSP files have 121 columns. Key columns used across rules:
 - Reported in DS_SBE as field 4 = `101;211`, field 5 = the combined 101 + 211 description (`ClassificationTables.Rule101BehaviorDescription`), not the per-code text from `behavior_descriptions.xlsx`.
 
 ### Rule 202 — Abnormal Monthly Volume (Rolling Average)
+- **Outbound only, and only branches `ATH170025`, `ATH170014`** (the online channel; cl16; branch list **user-configurable**) — inbound and every other branch are ignored, in both the history and the reporting month.
 - Load all RSP files for N months prior + reporting month (default: 6 prior months; **user-configurable**).
-- Group by person ID (IB: cl74; OB: cl39). Compute average monthly principal for the prior N months (skip months with zero activity — new customers excluded).
-- If reporting-month total principal > **3× average** (multiplier **user-configurable**) → flag all that person's transactions for the reporting month → DS_SBE.
+- Group by person ID (OB: cl39). Compute average monthly principal for the prior N months (skip months with zero activity — new customers excluded).
+- If reporting-month total principal > **3× average** (multiplier **user-configurable**) → flag all that person's in-scope transactions for the reporting month → DS_SBE.
 
 ### Rule 203 — Transactions Inconsistent with Income / Occupation Profile
 **Online channel (Transaction Report):**

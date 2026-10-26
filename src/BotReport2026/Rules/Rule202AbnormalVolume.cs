@@ -10,20 +10,22 @@ public class Rule202AbnormalVolume : IRuleEngine
     {
         var sbe = new List<SbeRecord>();
         var reportingYM = (ctx.ReportingMonth.Year, ctx.ReportingMonth.Month);
+        var branches = IncludedBranches(ctx.Config);
 
         // Build monthly totals from historical RSP (exclude reporting month as safety filter)
         var historical = ctx.HistoricalRsp
+            .Where(t => IsInScope(t, branches))
             .Where(t => t.TransactionDate.HasValue &&
                         (t.TransactionDate.Value.Year != reportingYM.Year ||
                          t.TransactionDate.Value.Month != reportingYM.Month))
             .ToList();
 
-        // Group historical: (personId, direction) → month → total principal
-        var histByPerson = new Dictionary<(string personId, string direction), Dictionary<(int year, int month), decimal>>();
+        // Group historical: personId → month → total principal
+        var histByPerson = new Dictionary<string, Dictionary<(int year, int month), decimal>>();
         foreach (var t in historical)
         {
             if (string.IsNullOrWhiteSpace(t.PersonId)) continue;
-            var key = (t.PersonId.Trim().ToUpperInvariant(), t.Direction);
+            string key = t.PersonId.Trim().ToUpperInvariant();
             if (!histByPerson.TryGetValue(key, out var monthMap))
             {
                 monthMap = new Dictionary<(int, int), decimal>();
@@ -33,18 +35,16 @@ public class Rule202AbnormalVolume : IRuleEngine
             monthMap[ym] = monthMap.GetValueOrDefault(ym) + t.Principal;
         }
 
-        // Reporting month totals, grouped by person only (direction split happens below)
         var reportingByPerson = ctx.ReportingMonthRsp
+            .Where(t => IsInScope(t, branches))
             .Where(t => !string.IsNullOrWhiteSpace(t.PersonId))
-            .GroupBy(t => t.PersonId.Trim(), StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+            .GroupBy(t => t.PersonId.Trim(), StringComparer.OrdinalIgnoreCase);
 
-        // Evaluates one direction's breach: true if it has history and reportingTotal > avg * multiplier
-        bool IsBreach(string personId, string direction, List<RspTransaction> txns)
+        foreach (var group in reportingByPerson)
         {
-            if (txns.Count == 0) return false;
-            if (!histByPerson.TryGetValue((personId.ToUpperInvariant(), direction), out var monthMap) || monthMap.Count == 0)
-                return false;
+            // New customers (no history) are not flagged
+            if (!histByPerson.TryGetValue(group.Key.ToUpperInvariant(), out var monthMap) || monthMap.Count == 0)
+                continue;
 
             var activePriorMonths = monthMap
                 .OrderByDescending(m => m.Key.year * 100 + m.Key.month)
@@ -52,30 +52,25 @@ public class Rule202AbnormalVolume : IRuleEngine
                 .Select(m => m.Value)
                 .ToList();
 
-            if (activePriorMonths.Count == 0) return false;
+            decimal threshold = activePriorMonths.Average() * ctx.Config.Rule202Multiplier;
+            if (group.Sum(t => t.Principal) <= threshold) continue;
 
-            decimal avg = activePriorMonths.Average();
-            decimal threshold = avg * ctx.Config.Rule202Multiplier;
-            return txns.Sum(t => t.Principal) > threshold;
+            sbe.AddRange(SbeRecordFactory.From(group, RuleCode, ctx));
         }
 
-        foreach (var kvp in reportingByPerson)
-        {
-            string personId = kvp.Key;
-            var ibTxns = kvp.Value.Where(t => t.Direction == "IB").ToList();
-            var obTxns = kvp.Value.Where(t => t.Direction == "OB").ToList();
-
-            bool ibBreach = IsBreach(personId, "IB", ibTxns);
-            bool obBreach = IsBreach(personId, "OB", obTxns);
-
-            var resolved = DirectionalFlagResolver.Resolve(ibBreach, ibTxns, obBreach, obTxns);
-            if (resolved == null) continue;
-            var (txns, suffix) = resolved.Value;
-
-            sbe.AddRange(SbeRecordFactory.From(txns, RuleCode + suffix, ctx));
-        }
-
-        ctx.LogCallback($"Rule 202: พบ {sbe.Count} รายการยอดผิดปกติ (avg × {ctx.Config.Rule202Multiplier})");
+        ctx.LogCallback($"Rule 202: พบ {sbe.Count} รายการยอดผิดปกติ (avg × {ctx.Config.Rule202Multiplier}, " +
+                        $"เฉพาะขาออก สาขา {BranchScope.Describe(branches)})");
         return (sbe, new List<SaeRecord>());
     }
+
+    /// <summary>Rule202Branches — outbound at these branches only. Empty = every branch.</summary>
+    public static HashSet<string> IncludedBranches(AppConfig config) =>
+        BranchScope.Normalize(config.Rule202Branches);
+
+    /// <summary>
+    /// Rule 202 looks only at outbound (send money) transactions made at the configured
+    /// branches (the online channel by default) — both for the history and the reporting month.
+    /// </summary>
+    public static bool IsInScope(RspTransaction t, HashSet<string> branches) =>
+        BranchScope.IsOutboundAt(t, branches);
 }

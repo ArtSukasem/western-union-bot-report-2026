@@ -394,33 +394,35 @@ public static class PersonExplainer
         double hours = ctx.Config.Rule209ConsecutiveHours;
         var s = Section($"Rule 209 — ทำธุรกรรมต่อเนื่อง ≥ {hours} ชั่วโมงในวันเดียว", ExplainVerdict.Miss);
 
-        var withTime = reporting.Where(t => t.TransactionDate.HasValue && t.TransactionTime.HasValue).ToList();
-        s.Lines.Add($"{Bullet}ขั้นที่ 1 — รายการที่มีทั้งวันที่และเวลา: {withTime.Count:N0} จาก {reporting.Count:N0}");
+        var branches = Rule209ContinuousTrading.IncludedBranches(ctx.Config);
+        var withTime = reporting
+            .Where(t => BranchScope.IsOutboundAt(t, branches))
+            .Where(t => t.TransactionDate.HasValue && t.TransactionTime.HasValue).ToList();
+        s.Lines.Add($"{Bullet}ขั้นที่ 1 — รายการขาออก (OB) สาขา {BranchScope.Describe(branches)} " +
+                    $"ที่มีทั้งวันที่และเวลา: {withTime.Count:N0} จาก {reporting.Count:N0}");
 
         bool anyHit = false;
-        foreach (var dir in new[] { "IB", "OB" })
-        {
-            var days = withTime.Where(t => t.Direction == dir)
-                .GroupBy(t => t.TransactionDate!.Value.Date)
-                .Where(g => g.Count() >= 2)
-                .Select(g =>
-                {
-                    var times = g.Select(t => t.TransactionTime!.Value).OrderBy(x => x).ToList();
-                    return (Date: g.Key, Count: g.Count(), First: times.First(), Last: times.Last(),
-                            Span: (times.Last() - times.First()).TotalHours);
-                })
-                .OrderByDescending(d => d.Span)
-                .ToList();
+        var days = withTime
+            .GroupBy(t => t.TransactionDate!.Value.Date)
+            .Where(g => g.Count() >= 2)
+            .Select(g =>
+            {
+                var times = g.Select(t => t.TransactionTime!.Value).OrderBy(x => x).ToList();
+                return (Date: g.Key, Count: g.Count(), First: times.First(), Last: times.Last(),
+                        Span: (times.Last() - times.First()).TotalHours);
+            })
+            .OrderByDescending(d => d.Span)
+            .ToList();
 
-            if (days.Count == 0) continue;
+        if (days.Count > 0)
+        {
             var top = days[0];
-            bool breach = top.Span >= hours;
-            s.Lines.Add($"{Bullet}   [{dir}] วันที่ช่วงเวลากว้างสุด {top.Date:yyyy-MM-dd}: " +
+            anyHit = top.Span >= hours;
+            s.Lines.Add($"{Bullet}วันที่ช่วงเวลากว้างสุด {top.Date:yyyy-MM-dd}: " +
                         $"{top.First:hh\\:mm} ถึง {top.Last:hh\\:mm} = {top.Span:F2} ชม. " +
-                        $"({top.Count:N0} รายการ) → " + (breach ? "เข้าเกณฑ์" : "ไม่เข้าเกณฑ์"));
+                        $"({top.Count:N0} รายการ) → " + (anyHit ? "เข้าเกณฑ์" : "ไม่เข้าเกณฑ์"));
             int breachDays = days.Count(d => d.Span >= hours);
-            if (breachDays > 1) s.Lines.Add($"{Bullet}      มีอีก {breachDays - 1:N0} วันที่เข้าเกณฑ์เช่นกัน");
-            anyHit |= breach;
+            if (breachDays > 1) s.Lines.Add($"{Bullet}   มีอีก {breachDays - 1:N0} วันที่เข้าเกณฑ์เช่นกัน");
         }
 
         if (!anyHit && withTime.Count > 0)

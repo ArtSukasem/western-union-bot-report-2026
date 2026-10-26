@@ -35,6 +35,7 @@ start of every run (`MainForm.StartRun`), not only when the user clicks "บั�
 | `Rule208WeeklyCount` / `Rule208WeeklyAmount` | 20 / 150000 | Rule 208 weekly check |
 | `Rule208MonthlyCount` / `Rule208MonthlyAmount` | 50 / 150000 | Rule 208 monthly check |
 | `Rule209ConsecutiveHours` | 16 | Rule 209 |
+| `Rule209Branches` | `["ATH170025", "ATH170014"]` | Rule 209 (outbound only) — the only branches counted. Empty = every branch. A `config.json` without this key gets the default |
 
 Rules 101, 212, and 301 have no tunable thresholds — they only depend on the
 sanction list, financial-crime list, and suspicious-retail list files being

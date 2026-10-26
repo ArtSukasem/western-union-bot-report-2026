@@ -22,6 +22,7 @@ public class TabSettings : UserControl
     private TextBox _tb208Branches;
     // Rule 209
     private NumericUpDown _n209Hours;
+    private TextBox _tb209Branches;
 
     public TabSettings()
     {
@@ -128,6 +129,8 @@ public class TabSettings : UserControl
     {
         var gb = MakeGroup("Rule 209 — ทำธุรกรรมต่อเนื่อง 24/7 (depends on: RSP)");
         AddRow(gb, "จำนวนชั่วโมงต่อเนื่อง ≥:", _n209Hours = MakeNum(1, 24, 16));
+        AddRow(gb, "สาขาที่นำมาคิด (คิดเฉพาะขาออก, ว่าง = ทุกสาขา) — บรรทัดละ 1:",
+            _tb209Branches = MakeTextBox("ATH170025\r\nATH170014"), labelTop: true);
         return gb;
     }
 
@@ -166,7 +169,8 @@ public class TabSettings : UserControl
             Rule208WeeklyAmount = _n208WkAmt.Value,
             Rule208MonthlyCount = (int)_n208MoCount.Value,
             Rule208MonthlyAmount = _n208MoAmt.Value,
-            Rule209ConsecutiveHours = (int)_n209Hours.Value
+            Rule209ConsecutiveHours = (int)_n209Hours.Value,
+            Rule209Branches = SplitLines(_tb209Branches.Text)
         };
     }
 
@@ -194,6 +198,7 @@ public class TabSettings : UserControl
         _n208MoCount.Value = c.Rule208MonthlyCount;
         _n208MoAmt.Value = c.Rule208MonthlyAmount;
         _n209Hours.Value = c.Rule209ConsecutiveHours;
+        _tb209Branches.Text = string.Join(Environment.NewLine, c.Rule209Branches ?? new());
     }
 
     // --- Helpers ---

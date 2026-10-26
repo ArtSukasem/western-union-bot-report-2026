@@ -109,6 +109,7 @@ RSP files have 121 columns. Key columns used across rules:
 - → DS_SBE.
 
 ### Rule 209 — 24/7 Continuous Transactions
+- **Outbound only, and only branches `ATH170025`, `ATH170014`** (the online channel; cl16; branch list **user-configurable**) — inbound and every other branch are ignored.
 - Detect persons making transactions across ≥ **16–24 consecutive hours** within a single day (**threshold user-configurable**).
 - → DS_SBE.
 

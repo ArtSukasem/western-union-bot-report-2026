@@ -45,4 +45,6 @@ public class AppConfig
 
     // Rule 209
     public int Rule209ConsecutiveHours { get; set; } = 16;
+    // Outbound only, and only these branches (the online channel). Empty = every branch.
+    public List<string> Rule209Branches { get; set; } = new() { "ATH170025", "ATH170014" };
 }

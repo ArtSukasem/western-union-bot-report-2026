@@ -171,13 +171,13 @@ Rules 201, 204, 205, and 210 are out of scope for this app (not required).
 | **203 (Online)** | An online transaction was held for "proof of income" — reported with EDD results pre-filled: passed (Approved / Received / Delivered → result 0) or not passed (Refunded → result 1, reason "EDD ไม่ผ่าน"). |
 | **203 (Retail)** | A person's **outbound** (send money) total over a rolling 3-month window exceeds **3×** the expected monthly income for their stated occupation. Inbound transactions and the online branches ATH170025 / ATH170014 are not counted. |
 | **206** | Transactions at a designated high-risk border branch exceed 700,000 THB/month or 20 transactions/month (currently no branches are designated). |
-| **208** | "Structuring" — many transactions just under 50,000 THB in a single day/week/month that add up past a running total. |
-| **209** | A person transacts across a 16+ hour span within a single day. |
+| **208** | "Structuring" — many **outbound** transactions just under 50,000 THB through the online branches (ATH170025 / ATH170014) in a single day/week/month that add up past a running total. Inbound and other branches are not counted. |
+| **209** | A person's **outbound** transactions through the online branches (ATH170025 / ATH170014) span 16+ hours within a single day. Inbound and other branches are not counted. |
 | **212** | Sender/receiver name matches a known financial-crime person list. |
 | **301** | Transaction matches a "suspicious storefront customer" list by MTCN, ID, or name. |
 
-**Inbound and outbound are evaluated independently.** For rules 202, 203
-(Retail), 206, 208, and 209, a person's money *received* and money *sent*
+**Inbound and outbound are evaluated independently.** For rule 206
+(202, 203 Retail, 208 and 209 look at outbound only), a person's money *received* and money *sent*
 are no longer pooled together — each direction is checked against the
 threshold on its own. If only one direction crosses the threshold, only
 that direction's transactions are reported; if both cross independently,

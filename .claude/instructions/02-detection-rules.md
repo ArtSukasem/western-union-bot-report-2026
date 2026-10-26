@@ -10,8 +10,9 @@ have no implementation.
 Person grouping in RSP-based rules always uses `PersonId` (IB: receiver ID / cl74,
 OB: sender ID / cl39), case-insensitively trimmed.
 
-**Inbound/outbound are evaluated independently in the five amount/count-aggregating
-rules (202, 203-Retail, 206, 208, 209).** Each of these groups a person's
+**Inbound/outbound are evaluated independently in Rule 206**, the only
+amount/count-aggregating rule left that reads both directions (202,
+203-Retail, 208 and 209 look at outbound only, see below). Each of these groups a person's
 transactions by `PersonId` and then splits into `Direction == "IB"` /
 `"OB"` sub-lists *before* computing totals, counts, or windows — an inbound
 receipt and an outbound send under the same ID are never summed together.
@@ -120,16 +121,16 @@ Two independent sub-checks, both tagged `BehaviorType = "203"` but different `Ru
 ## Rule 209 — 24/7 continuous transactions
 [Rule209ContinuousTrading.cs](../BotReport2026/Rules/Rule209ContinuousTrading.cs)
 
-- Requires both date and time to be parsed. Groups by person, splits into
-  IB/OB, then within each direction groups by calendar date. For each
-  direction/day with ≥2 transactions, computes the span between the earliest
-  and latest transaction time for that direction only; if
-  `span ≥ Config.Rule209ConsecutiveHours` (default 16), that direction/day's
-  transactions are flagged (an IB receipt and an OB send on the same day no
-  longer combine to form a span).
-- A person can be flagged from multiple days within a direction; all flagged
-  transactions for the breaching direction(s) across the month are combined
-  into one `SbeRecord`.
+- **Scope: outbound (`Direction == "OB"`) at the branches in
+  `Config.Rule209Branches` only** (default `ATH170025`, `ATH170014` — the online
+  channel; empty list = every branch), via `BranchScope.IsOutboundAt`.
+- Requires both date and time to be parsed. Groups by person, then by
+  calendar date. For each day with ≥2 transactions, computes the span between
+  the earliest and latest transaction time; if
+  `span ≥ Config.Rule209ConsecutiveHours` (default 16), that day's
+  transactions are flagged.
+- A person can be flagged from multiple days; all flagged days' transactions
+  are reported (`RuleCode = "209"`).
 - Note: despite the CLAUDE.md description of "16–24 consecutive hours", the
   implementation is a single configurable threshold (`≥ hours`), not a range.
 

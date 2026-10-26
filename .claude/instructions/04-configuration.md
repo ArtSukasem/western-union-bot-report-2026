@@ -17,12 +17,12 @@ start of every run (`MainForm.StartRun`), not only when the user clicks "บั�
 | Property | Default | Used by |
 |---|---|---|
 | `RspIncludedStatuses` | `["PAID", "UNPAID"]` | RSP read (all rules) — cl2 filter; empty list = no filtering. Sheet (A) requires both values |
-| `SaeOnlineChannelBranches` | `["ATH170025", "ATH170014"]` | DS_SAE fields 11 & 15 — treated as the online channel (`330004`) with no physical location. Note this is a **different list** from `Rule203ExcludedBranches`, which has only `ATH170025` |
+| `SaeOnlineChannelBranches` | `["ATH170025", "ATH170014"]` | DS_SAE fields 11 & 15 — treated as the online channel (`330004`) with no physical location. Same branches as `Rule203ExcludedBranches` by default, but a **separate list** — changing one does not change the other |
 | `Rule202PriorMonths` | 6 | Rule 202 |
 | `Rule202Multiplier` | 3 | Rule 202 |
 | `Rule203RollingMonths` | 3 | Rule 203 (retail) |
 | `Rule203Multiplier` | 3 | Rule 203 (retail) |
-| `Rule203ExcludedBranches` | `["ATH170025"]` | Rule 203 (retail) — branches treated as online, excluded from retail check |
+| `Rule203ExcludedBranches` | `["ATH170025", "ATH170014"]` | Rule 203 (retail, outbound only) — branches treated as online, excluded from retail check. A `config.json` saved before this default changed keeps its own list; add `ATH170014` on Tab 2 |
 | `Rule203OtherMonthlyIncome` | `49999` | Rule 203 (retail) — expected monthly income for a person whose occupation matches no lookup row with an income (the อื่น ๆ case), instead of skipping them |
 | `OccupationFuzzyThresholdPercent` | `80` | Minimum similarity (%) for matching the free-text `cl114` / `cl104` against the occupation lookup when `cl89` / `cl54` has no exact match — used by Rule 203 (retail) income and DS_SBE field 16. Set on Tab 2 in the Rule 203 group |
 | `Rule206HighRiskBranches` | `[]` (empty) | Rule 206 — empty means the rule is a no-op |

@@ -19,10 +19,10 @@ public class AppConfig
     // cl89 / cl54 dropdown value is not in the lookup.
     public int OccupationFuzzyThresholdPercent { get; set; } = 80;
 
-    // Rule 203 retail
+    // Rule 203 retail — outbound only; the online-channel branches are excluded
     public int Rule203RollingMonths { get; set; } = 3;
     public decimal Rule203Multiplier { get; set; } = 3m;
-    public List<string> Rule203ExcludedBranches { get; set; } = new() { "ATH170025" };
+    public List<string> Rule203ExcludedBranches { get; set; } = new() { "ATH170025", "ATH170014" };
     // Expected monthly income for a person whose occupation matches no lookup row with an
     // income (the "อื่น ๆ" case) — used instead of skipping them.
     public decimal Rule203OtherMonthlyIncome { get; set; } = 49999m;

@@ -87,7 +87,8 @@ public class TabSettings : UserControl
         var gb = MakeGroup("Rule 203 — ไม่สอดคล้องกับ Profile รายได้/อาชีพ (depends on: RSP, Transaction Report, mapper)");
         AddRow(gb, "จำนวนเดือนย้อนหลัง (Retail):", _n203Months = MakeNum(1, 24, 3));
         AddRow(gb, "ตัวคูณ (เท่า):", _n203Mult = MakeNum(1m, 20m, 3m, 1));
-        AddRow(gb, "สาขาที่ยกเว้น (Online) — บรรทัดละ 1:", _tb203Branches = MakeTextBox("ATH170025"), labelTop: true);
+        AddRow(gb, "สาขาที่ยกเว้น (Retail, คิดเฉพาะขาออก) — บรรทัดละ 1:",
+            _tb203Branches = MakeTextBox("ATH170025\r\nATH170014"), labelTop: true);
         AddRow(gb, "อาชีพ cl114/cl104 — ความคล้ายขั้นต่ำ fuzzy (%) (ใช้กับ DS_SBE field 16 ด้วย):",
             _n203OccFuzzy = MakeNum(50, 100, 80));
         AddRow(gb, "รายได้/เดือน กรณีอาชีพอื่น ๆ (ไม่พบในไฟล์ lookup) (บาท):",

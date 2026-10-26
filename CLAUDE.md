@@ -52,13 +52,13 @@ RSP files have 121 columns. Key columns used across rules:
 
 **Inbound (Receive money — IB):**
 - cl1 = MTCN, cl5 = Pay_Date, cl6 = Pay_Time, cl12 = Pay_Principal
-- cl22 = Pay_Agent_Account_ID (branch code; use to exclude online branch `ATH170025`)
+- cl22 = Pay_Agent_Account_ID (branch code)
 - cl60 = Receiver_First_Name, cl61 = Receiver_Last_Name
 - cl74 = Receiver_Id1_Number, cl89 = Receiver_Occupation, cl114 = free-text occupation (fuzzy-matched when cl89 has no exact lookup match)
 
 **Outbound (Send money — OB):**
 - cl1 = MTCN, cl3 = Send_Date, cl4 = Send_Time, cl8 = Send_Principal
-- cl16 = Send_Agent_Account_ID (branch code; use to exclude `ATH170025`)
+- cl16 = Send_Agent_Account_ID (branch code; rule 203-Retail excludes `ATH170025`, `ATH170014`)
 - cl25 = Sender_First_Name, cl26 = Sender_Last_Name
 - cl39 = Sender_Id1_Number, cl54 = Sender_Occupation, cl104 = free-text occupation (fuzzy-matched when cl54 has no exact lookup match)
 
@@ -86,7 +86,7 @@ RSP files have 121 columns. Key columns used across rules:
 - Filter rows where cl24 (Error Reason) contains text starting with `Income` (e.g., `r2110 proof of income required`).
 - If cl4 (Status) is `Approved`, `Received`, or `Delivered` → EDD already passed → report both DS_SBE **and** DS_SAE.
 
-**Retail channel (RSP only — exclude branch `ATH170025`):**
+**Retail channel (RSP outbound only — inbound is not used; exclude online branches `ATH170025`, `ATH170014`):**
 - Rolling 3 months (prior months; **user-configurable**).
 - Look up occupation: cl89/cl54 exact match on the lookup's English name; if no match (incl. OTHERS) → cl114/cl104 fuzzy match ≥ **80%** (**user-configurable**) → expected monthly income from the lookup. The same match supplies DS_SBE field 16 from the lookup's `BoT code` column (no match → `2003500015`). No match with an income → occupation is "Others" → expected monthly income = **49,999 THB** (**user-configurable**) instead of skipping the person.
 - If total principal in rolling 3 months > **3× expected monthly income** (multiplier **user-configurable**) → DS_SBE.

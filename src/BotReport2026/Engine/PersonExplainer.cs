@@ -255,13 +255,12 @@ public static class PersonExplainer
                         $"(ย้อนหลัง {ctx.Config.Rule203RollingMonths} เดือน × {ctx.Config.Rule203Multiplier})",
                         ExplainVerdict.Miss);
 
-        var excluded = ctx.Config.Rule203ExcludedBranches
-            .Select(b => b.Trim().ToUpperInvariant()).ToHashSet();
-        s.Lines.Add($"{Bullet}ขั้นที่ 1 — ตัดสาขาออนไลน์ออก: {string.Join(", ", excluded)}");
+        var excluded = Rule203IncomeMismatch.ExcludedBranches(ctx.Config);
+        s.Lines.Add($"{Bullet}ขั้นที่ 1 — เฉพาะขาออก (OB) และตัดสาขาออนไลน์ออก: {string.Join(", ", excluded)}");
 
         var cutoff = ctx.ReportingMonth.AddMonths(-ctx.Config.Rule203RollingMonths);
         var window = reporting.Concat(historical)
-            .Where(t => !excluded.Contains(t.BranchAccountId.ToUpperInvariant()))
+            .Where(t => Rule203IncomeMismatch.IsRetailOutbound(t, excluded))
             .Where(t => t.TransactionDate.HasValue && t.TransactionDate >= cutoff)
             .ToList();
         s.Lines.Add($"{Bullet}ขั้นที่ 2 — ช่วงเวลา: ตั้งแต่ {cutoff:yyyy-MM-dd} เป็นต้นไป " +
@@ -288,27 +287,20 @@ public static class PersonExplainer
         s.Lines.Add($"{Bullet}ขั้นที่ 4 — เกณฑ์ = {Money(expected)} × {ctx.Config.Rule203Multiplier} " +
                     $"= {Money(threshold)}");
 
-        bool anyHit = false;
-        foreach (var dir in new[] { "IB", "OB" })
-        {
-            decimal windowTotal = window.Where(t => t.Direction == dir).Sum(t => t.Principal);
-            int reportingCount = reporting
-                .Where(t => !excluded.Contains(t.BranchAccountId.ToUpperInvariant()))
-                .Count(t => t.Direction == dir);
+        decimal windowTotal = window.Sum(t => t.Principal);
+        int reportingCount = reporting.Count(t => Rule203IncomeMismatch.IsRetailOutbound(t, excluded));
 
-            bool over = windowTotal > threshold;
-            bool breach = over && reportingCount > 0;
-            s.Lines.Add($"{Bullet}   [{dir}] ยอดรวมในช่วง = {Money(windowTotal)} " +
-                        $"{(over ? ">" : "≤")} {Money(threshold)}; " +
-                        $"ธุรกรรมเดือนที่รายงาน = {reportingCount:N0} รายการ → " +
-                        (breach ? "เข้าเกณฑ์"
-                                : over ? "เกินเกณฑ์แต่ไม่มีธุรกรรมเดือนที่รายงาน จึงไม่รายงาน"
-                                       : "ไม่เข้าเกณฑ์"));
-            anyHit |= breach;
-        }
+        bool over = windowTotal > threshold;
+        bool hit = over && reportingCount > 0;
+        s.Lines.Add($"{Bullet}   [OB] ยอดรวมในช่วง = {Money(windowTotal)} " +
+                    $"{(over ? ">" : "≤")} {Money(threshold)}; " +
+                    $"ธุรกรรมเดือนที่รายงาน = {reportingCount:N0} รายการ → " +
+                    (hit ? "เข้าเกณฑ์"
+                         : over ? "เกินเกณฑ์แต่ไม่มีธุรกรรมเดือนที่รายงาน จึงไม่รายงาน"
+                                : "ไม่เข้าเกณฑ์"));
 
-        s.Lines.Add(Arrow + (anyHit ? "เข้าเกณฑ์ Rule 203-Retail" : "ไม่เข้าเกณฑ์ Rule 203-Retail"));
-        return With(s, anyHit ? ExplainVerdict.Hit : ExplainVerdict.Miss);
+        s.Lines.Add(Arrow + (hit ? "เข้าเกณฑ์ Rule 203-Retail" : "ไม่เข้าเกณฑ์ Rule 203-Retail"));
+        return With(s, hit ? ExplainVerdict.Hit : ExplainVerdict.Miss);
     }
 
     // ------------------------------------------------------------------- 206

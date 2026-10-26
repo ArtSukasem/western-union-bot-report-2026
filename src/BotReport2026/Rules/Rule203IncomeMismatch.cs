@@ -18,14 +18,12 @@ public class Rule203IncomeMismatch : IRuleEngine
         foreach (var row in ctx.TransactionReport)
             sbeList.Add(SbeRecordFactory.FromOnline(row, "203-Online", ctx));
 
-        // --- 203 Retail: RSP excluding online branches ---
-        var excludedBranches = ctx.Config.Rule203ExcludedBranches
-            .Select(b => b.Trim().ToUpperInvariant())
-            .ToHashSet();
+        // --- 203 Retail: outbound (send money) RSP only, excluding online branches ---
+        var excludedBranches = ExcludedBranches(ctx.Config);
 
-        // Combine reporting + historical, exclude online branches
+        // Combine reporting + historical, keep retail outbound
         var allRetail = ctx.ReportingMonthRsp.Concat(ctx.HistoricalRsp)
-            .Where(t => !excludedBranches.Contains(t.BranchAccountId.ToUpperInvariant()))
+            .Where(t => IsRetailOutbound(t, excludedBranches))
             .Where(t => t.TransactionDate.HasValue)
             .ToList();
 
@@ -58,27 +56,17 @@ public class Rule203IncomeMismatch : IRuleEngine
             if (expectedIncome <= 0) continue;
 
             decimal threshold = expectedIncome * ctx.Config.Rule203Multiplier;
-            decimal ibWindowTotal = group.Where(t => t.Direction == "IB").Sum(t => t.Principal);
-            decimal obWindowTotal = group.Where(t => t.Direction == "OB").Sum(t => t.Principal);
+            decimal windowTotal = group.Sum(t => t.Principal);
 
-            // Flag only reporting-month transactions for this person, split by direction
+            // Flag only this person's reporting-month transactions; a breach with no
+            // reporting-month activity has nothing to report
             var reportingTxns = ctx.ReportingMonthRsp
-                .Where(t => !excludedBranches.Contains(t.BranchAccountId.ToUpperInvariant()))
+                .Where(t => IsRetailOutbound(t, excludedBranches))
                 .Where(t => t.PersonId.Equals(personId, StringComparison.OrdinalIgnoreCase))
                 .ToList();
-            var ibReportingTxns = reportingTxns.Where(t => t.Direction == "IB").ToList();
-            var obReportingTxns = reportingTxns.Where(t => t.Direction == "OB").ToList();
+            if (windowTotal <= threshold || reportingTxns.Count == 0) continue;
 
-            // A direction only counts as breached if it also has reporting-month activity to report
-            bool ibBreach = ibWindowTotal > threshold && ibReportingTxns.Count > 0;
-            bool obBreach = obWindowTotal > threshold && obReportingTxns.Count > 0;
-            if (!ibBreach && !obBreach) continue;
-
-            var resolved = DirectionalFlagResolver.Resolve(ibBreach, ibReportingTxns, obBreach, obReportingTxns);
-            if (resolved == null) continue;
-            var (txns, suffix) = resolved.Value;
-
-            sbeList.AddRange(SbeRecordFactory.From(txns, "203-Retail" + suffix, ctx));
+            sbeList.AddRange(SbeRecordFactory.From(reportingTxns, "203-Retail", ctx));
         }
 
         if (otherIncomeCount > 0)
@@ -87,6 +75,20 @@ public class Rule203IncomeMismatch : IRuleEngine
         ctx.LogCallback($"Rule 203: Online={ctx.TransactionReport.Count}, Retail={sbeList.Count - ctx.TransactionReport.Count} รายการ");
         return (sbeList, new List<SaeRecord>());
     }
+
+    /// <summary>Rule203ExcludedBranches, trimmed and uppercased for lookup.</summary>
+    public static HashSet<string> ExcludedBranches(AppConfig config) =>
+        config.Rule203ExcludedBranches
+            .Select(b => b.Trim().ToUpperInvariant())
+            .ToHashSet();
+
+    /// <summary>
+    /// Rule 203-Retail looks only at outbound (send money) transactions, and only those
+    /// made outside the excluded (online) branches.
+    /// </summary>
+    public static bool IsRetailOutbound(RspTransaction t, HashSet<string> excludedBranches) =>
+        t.Direction == "OB" &&
+        !excludedBranches.Contains(t.BranchAccountId.Trim().ToUpperInvariant());
 
     /// <summary>
     /// The person's expected monthly income: the first transaction (reporting month first,

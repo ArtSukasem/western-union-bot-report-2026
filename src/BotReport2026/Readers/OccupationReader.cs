@@ -19,7 +19,8 @@ public record OccupationMatch(OccupationEntry Entry, bool FromOtherColumn, strin
 ///   1. the dropdown value (cl89 IB / cl54 OB) matched exactly on the English name;
 ///   2. if that is blank, OTHERS or not in the lookup, the free-text value
 ///      (cl114 IB / cl104 OB) matched fuzzily, best score at or above the threshold;
-///   3. otherwise no match — field 16 falls back to "อื่น ๆ" and Rule 203 skips the person.
+///   3. otherwise no match — field 16 falls back to "อื่น ๆ" and Rule 203 uses
+///      Rule203OtherMonthlyIncome.
 /// </summary>
 public class OccupationLookup
 {

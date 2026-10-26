@@ -5,16 +5,21 @@ namespace BotReport2026.Readers;
 
 public static class TransactionReportReader
 {
+    /// <summary>Status of a transaction refunded after failing the income check (EDD not passed).</summary>
+    public const string RefundedStatus = "Refunded";
+
+    // Approved / Received / Delivered passed EDD; Refunded did not — both are reported
     private static readonly HashSet<string> QualifyingStatuses = new(StringComparer.OrdinalIgnoreCase)
     {
-        "Approved", "Received", "Delivered"
+        "Approved", "Received", "Delivered", RefundedStatus
     };
 
     /// <summary>
     /// Reads Transaction Report file.
     /// Columns are indexed by position (cl3=MTCN, cl4=Status, cl9=Sender name,
     /// cl12=Sender ID number, cl17=Principal Amount, cl24=Error reason).
-    /// Pre-filters to rows where Error_Reason mentions income AND Status qualifies.
+    /// Pre-filters to rows where Error_Reason mentions income AND Status qualifies
+    /// (Approved / Received / Delivered / Refunded).
     /// </summary>
     public static List<TransactionReportRow> ReadFile(string filePath)
     {

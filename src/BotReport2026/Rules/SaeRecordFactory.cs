@@ -37,12 +37,25 @@ public static class SaeRecordFactory
         if (t == null)
         {
             // Rule 203-Online: no RSP row, so nationality / branch / amount are unknown.
-            // Sheet (A) says these transactions have already cleared EDD (CSC called the
-            // customer and the transaction was then approved), so the result is pre-filled
-            // as "not abnormal" — but left editable, since only Rule 101 is locked.
+            // These transactions have already been through EDD (CSC called the customer),
+            // so the result is pre-filled from the status — but left editable, since only
+            // Rule 101 is locked:
+            //   Approved / Received / Delivered → passed: "not abnormal";
+            //   Refunded → not passed: "abnormal", reason "อื่น ๆ" + "EDD ไม่ผ่าน".
             if (sbe.RuleCode == "203-Online")
             {
-                sae.EddResult = ClassificationTables.EddResultOptions[0];
+                if (sbe.OnlineSource?.IsRefunded == true)
+                {
+                    sae.EddResult = ClassificationTables.EddResultOptions[1];
+                    sae.EddReason = ctx.ReferenceData.EddReasons.FirstOrDefault(r =>
+                                        r.StartsWith(ClassificationTables.EddReasonOtherPrefix, StringComparison.Ordinal))
+                                    ?? ClassificationTables.EddReasonOtherPrefix;
+                    sae.EddReasonOtherText = ClassificationTables.Rule203RefundedEddReasonText;
+                }
+                else
+                {
+                    sae.EddResult = ClassificationTables.EddResultOptions[0];
+                }
                 sae.EddCompletionDate = ctx.ReportDate;
             }
             return sae;

@@ -232,8 +232,8 @@ public static class PersonExplainer
     private static ExplainSection Rule203Online(RuleContext ctx, List<TransactionReportRow> online)
     {
         var s = Section("Rule 203-Online — Transaction Report (ช่องทางออนไลน์)", ExplainVerdict.Miss);
-        s.Lines.Add($"{Bullet}ตัวอ่านไฟล์คัดมาแล้วเฉพาะแถวที่ Error Reason ขึ้นต้นด้วย \"Income\" " +
-                    "และ Status = Approved/Received/Delivered");
+        s.Lines.Add($"{Bullet}ตัวอ่านไฟล์คัดมาแล้วเฉพาะแถวที่ Error Reason มีคำว่า \"income\" " +
+                    "และ Status = Approved/Received/Delivered (ผ่าน EDD) หรือ Refunded (EDD ไม่ผ่าน)");
         s.Lines.Add($"{Bullet}แถวที่ Sender ID ตรงกับเลขนี้ : {online.Count:N0} รายการ");
         foreach (var r in online.Take(20))
             s.Lines.Add($"{Bullet}   MTCN {r.MTCN} · {r.Status} · {Money(r.PrincipalAmount ?? 0)} · {r.ErrorReason}");
@@ -241,7 +241,8 @@ public static class PersonExplainer
 
         bool hit = online.Count > 0;
         s.Lines.Add(Arrow + (hit
-            ? "เข้าเกณฑ์ — รายงานทั้ง DS_SBE และ DS_SAE (ผ่าน EDD แล้ว จึงตอบ DS_SAE ให้อัตโนมัติ)"
+            ? "เข้าเกณฑ์ — รายงานทั้ง DS_SBE และ DS_SAE (ตอบ DS_SAE ให้อัตโนมัติ: " +
+              "Approved/Received/Delivered = 0 ไม่ผิดปกติ, Refunded = 1 ผิดปกติ \"EDD ไม่ผ่าน\")"
             : "ไม่เข้าเกณฑ์"));
         return With(s, hit ? ExplainVerdict.Hit : ExplainVerdict.Miss);
     }

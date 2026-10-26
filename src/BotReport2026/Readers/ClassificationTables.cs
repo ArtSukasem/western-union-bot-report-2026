@@ -75,6 +75,12 @@ public static class ClassificationTables
     /// <summary>Marker prefix for the free-text "other" option in the reason dropdown.</summary>
     public const string EddReasonOtherPrefix = "อื่น ๆ";
 
+    /// <summary>
+    /// Rule 203-Online, Refunded: field 7.1 free text (with field 7 set to the "อื่น ๆ"
+    /// option); the export folds it into field 7.
+    /// </summary>
+    public const string Rule203RefundedEddReasonText = "EDD ไม่ผ่าน";
+
     // ---- Occupation Code (DS_SBE field 16) ----
     // The code itself comes from the "BoT code" column of the occupation lookup
     // (lookups/list_of_occupation_expected_monthly_income.xlsx); this is the fallback for

@@ -59,6 +59,12 @@ public class SbeRecord
     /// </summary>
     public RspTransaction? Source { get; set; }
 
+    /// <summary>
+    /// The Transaction Report row behind a Rule 203-Online record, kept so DS_SAE can
+    /// pre-answer it by status. Null for every RSP-based record.
+    /// </summary>
+    public TransactionReportRow? OnlineSource { get; set; }
+
     /// <summary>Internal rule identifier including the -IB/-OB suffix, for logging only.</summary>
     public string RuleCode { get; set; } = "";
 

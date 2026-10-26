@@ -84,7 +84,8 @@ RSP files have 121 columns. Key columns used across rules:
 ### Rule 203 — Transactions Inconsistent with Income / Occupation Profile
 **Online channel (Transaction Report):**
 - Filter rows where cl24 (Error Reason) contains text starting with `Income` (e.g., `r2110 proof of income required`).
-- If cl4 (Status) is `Approved`, `Received`, or `Delivered` → EDD already passed → report both DS_SBE **and** DS_SAE.
+- If cl4 (Status) is `Approved`, `Received`, or `Delivered` → EDD already passed → report both DS_SBE **and** DS_SAE (DS_SAE field 6 pre-filled `0`).
+- If cl4 (Status) is `Refunded` → EDD not passed → report both DS_SBE **and** DS_SAE, with DS_SAE field 6 = `1`, field 7 = the "อื่น ๆ (ระบุ)" option and 7.1 = `EDD ไม่ผ่าน`.
 
 **Retail channel (RSP outbound only — inbound is not used; exclude online branches `ATH170025`, `ATH170014`):**
 - Rolling 3 months (prior months; **user-configurable**).

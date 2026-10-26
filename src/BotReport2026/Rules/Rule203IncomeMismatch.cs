@@ -13,8 +13,9 @@ public class Rule203IncomeMismatch : IRuleEngine
 
         // --- 203 Online: Transaction Report rows (already pre-filtered by reader) ---
         // These have already been through EDD — CSC called the customer and the
-        // transaction was subsequently approved — so the DS_SAE row is pre-answered
-        // downstream by SaeRecordFactory rather than left for staff.
+        // transaction was then approved (passed) or refunded (not passed) — so the
+        // DS_SAE row is pre-answered downstream by SaeRecordFactory rather than left
+        // for staff.
         foreach (var row in ctx.TransactionReport)
             sbeList.Add(SbeRecordFactory.FromOnline(row, "203-Online", ctx));
 
@@ -72,7 +73,9 @@ public class Rule203IncomeMismatch : IRuleEngine
         if (otherIncomeCount > 0)
             ctx.LogCallback($"Rule 203 Retail: {otherIncomeCount:N0} คนไม่พบรายได้ตามอาชีพในไฟล์ lookup " +
                             $"→ ใช้รายได้อาชีพอื่น ๆ {ctx.Config.Rule203OtherMonthlyIncome:N0} บาท/เดือน");
-        ctx.LogCallback($"Rule 203: Online={ctx.TransactionReport.Count}, Retail={sbeList.Count - ctx.TransactionReport.Count} รายการ");
+        int refunded = ctx.TransactionReport.Count(r => r.IsRefunded);
+        ctx.LogCallback($"Rule 203: Online={ctx.TransactionReport.Count} (Refunded={refunded}), " +
+                        $"Retail={sbeList.Count - ctx.TransactionReport.Count} รายการ");
         return (sbeList, new List<SaeRecord>());
     }
 

@@ -8,4 +8,8 @@ public class TransactionReportRow
     public string SenderIdNumber { get; set; } = "";
     public decimal? PrincipalAmount { get; set; }
     public string ErrorReason { get; set; } = "";
+
+    /// <summary>Refunded after the income check — EDD did not pass.</summary>
+    public bool IsRefunded =>
+        Status.Equals(Readers.TransactionReportReader.RefundedStatus, StringComparison.OrdinalIgnoreCase);
 }

@@ -129,12 +129,19 @@ field 7 = `รายชื่ออยู่ใน CFR`, field 9 = วันท�
 
 **วิธีคำนวณ**
 1. เก็บเฉพาะแถวที่ cl24 (Error Reason) **มีคำว่า `income`** (ไม่สนตัวพิมพ์ เช่น `r2110 proof of income required`)
-2. และ cl4 (Status) เป็น `Approved`, `Received` หรือ `Delivered`
+2. และ cl4 (Status) เป็น `Approved`, `Received`, `Delivered` (ผ่าน EDD) หรือ `Refunded` (EDD ไม่ผ่าน)
+   — สถานะอื่นรวมถึง `PENDING REFUND` ไม่นับ
 3. ทุกแถวที่ผ่านเงื่อนไข → DS_SBE 1 แถวต่อ MTCN
    - field 8 = cl12, field 11 = cl9 (ชื่อทั้งก้อน)
    - field 6, 7, 13, 14, 15, 16 **ว่าง** เพราะ Transaction Report ไม่มีข้อมูลเหล่านี้
-4. **DS_SAE:** field 6 กรอกให้ล่วงหน้าเป็น `0 = ...ไม่เป็นพฤติกรรมที่ผิดปกติ` (เพราะผ่าน EDD แล้ว — แก้ไขได้)
-   และ field 5 = วันที่รันรายงาน
+4. **DS_SAE:** กรอกให้ล่วงหน้าตาม Status (แก้ไขได้ทั้งหมด) และ field 5 = วันที่รันรายงาน
+
+   | Status | field 6 ผลการตรวจสอบ | field 7 เหตุผล | 7.1 ระบุเหตุผล |
+   |---|---|---|---|
+   | Approved / Received / Delivered | `0 = ...ไม่เป็นพฤติกรรมที่ผิดปกติ` | ว่าง | ว่าง |
+   | Refunded | `1 = ...เป็นพฤติกรรมที่ผิดปกติ` | `อื่น ๆ (ระบุ) (ให้พิมพ์เอง)` | `EDD ไม่ผ่าน` |
+
+   ตอน export CSV ช่อง 7.1 จะไปแทน field 7 → field 7 ใน CSV = `EDD ไม่ผ่าน`
 
 #### 203-Retail (หน้าร้าน)
 

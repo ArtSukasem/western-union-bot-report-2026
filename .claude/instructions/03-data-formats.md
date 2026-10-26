@@ -57,7 +57,8 @@ whitespace (dates arrive as `" 03/23/2026"`) and strips the `="` / `"` wrapper.
   first data row.
 - Pre-filters at read time (nothing downstream needs to re-filter): keeps only
   rows where `cl24` (Error_Reason) contains "income"/"Income" **and** `cl4`
-  (Status) is one of `Approved`, `Received`, `Delivered`.
+  (Status) is one of `Approved`, `Received`, `Delivered` (EDD passed) or
+  `Refunded` (EDD not passed). `PENDING REFUND` and every other status are dropped.
 - Reads `cl3` = MTCN, `cl9` = SenderName, `cl12` = SenderIdNumber, `cl17` =
   PrincipalAmount (null if ≤ 0), `cl24` = ErrorReason. Verified against the real
   Jan26 header row.

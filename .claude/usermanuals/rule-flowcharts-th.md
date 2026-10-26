@@ -87,10 +87,12 @@ flowchart TD
 flowchart TD
     A["Transaction Report เดือนรายงาน"] --> B{"cl24 Error reason<br/>มีคำว่า income?"}
     B -- ไม่ --> NO["ข้าม"]
-    B -- ใช่ --> C{"cl4 Status เป็น<br/>Approved / Received / Delivered?"}
+    B -- ใช่ --> C{"cl4 Status เป็น<br/>Approved / Received / Delivered / Refunded?"}
     C -- ไม่ --> NO
     C -- ใช่ --> D["DS_SBE 1 แถว<br/>field 3 = cl3 MTCN<br/>field 8 = cl12 Sender ID<br/>field 11 = cl9 Sender name<br/>field 6, 7, 13–16 ว่าง"]
-    D --> E["DS_SAE กรอกให้ล่วงหน้า แก้ไขได้<br/>field 5 = วันที่รันรายงาน<br/>field 6 = 0 ไม่ผิดปกติ — ผ่าน EDD แล้ว<br/>field 4, 10, 11, 12, 15 ว่าง"]
+    D --> S{"Status"}
+    S -- "Approved / Received / Delivered" --> E["DS_SAE กรอกให้ล่วงหน้า แก้ไขได้<br/>field 5 = วันที่รันรายงาน<br/>field 6 = 0 ไม่ผิดปกติ — ผ่าน EDD แล้ว<br/>field 4, 10, 11, 12, 15 ว่าง"]
+    S -- Refunded --> F["DS_SAE กรอกให้ล่วงหน้า แก้ไขได้<br/>field 5 = วันที่รันรายงาน<br/>field 6 = 1 ผิดปกติ — EDD ไม่ผ่าน<br/>field 7 = อื่น ๆ (ระบุ) · 7.1 = EDD ไม่ผ่าน<br/>field 4, 10, 11, 12, 15 ว่าง"]
 ```
 
 ## Rule 203-Retail — ไม่สอดคล้องกับรายได้ (หน้าร้าน)

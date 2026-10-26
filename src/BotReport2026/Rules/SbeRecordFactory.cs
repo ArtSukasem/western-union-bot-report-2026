@@ -58,6 +58,7 @@ public static class SbeRecordFactory
             PersonRefId = row.SenderIdNumber.Trim(),
             FirstName = row.SenderName,
             AnomalyDate = ctx.ReportDate,
+            OnlineSource = row,
             RuleCode = ruleCode
         };
     }

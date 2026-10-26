@@ -98,11 +98,14 @@ Two independent sub-checks, both tagged `BehaviorType = "203"` but different `Ru
 ## Rule 208 — Structuring
 [Rule208Structuring.cs](../BotReport2026/Rules/Rule208Structuring.cs)
 
+- **Scope: outbound (`Direction == "OB"`) at the branches in
+  `Config.Rule208Branches` only** (default `ATH170025`, `ATH170014` — the online
+  channel; empty list = every branch), via `BranchScope.IsOutboundAt` (shared
+  with Rule 202 and the explain tab).
 - Filters to sub-threshold transactions: `0 < Principal < Config.Rule208SubThreshold`
   (default 50,000, i.e. ≤ 49,999).
-- Per person, splits into IB/OB, then independently checks each direction
-  against three windows (any one triggers a flag, checked in this order —
-  monthly, then daily, then weekly — first match wins):
+- Per person, checks three windows (any one triggers a flag, checked in this
+  order — monthly, then daily, then weekly — first match wins):
   - Monthly: `count > Rule208MonthlyCount` (default 50) **and**
     `total ≥ Rule208MonthlyAmount` (default 150,000).
   - Daily (grouped by calendar date): `count > Rule208DailyCount` (default 10)
@@ -110,9 +113,9 @@ Two independent sub-checks, both tagged `BehaviorType = "203"` but different `Ru
   - Weekly (grouped by ISO week via `ISOWeek.GetWeekOfYear`):
     `count > Rule208WeeklyCount` (default 20) **and**
     `total ≥ Rule208WeeklyAmount` (default 150,000).
-- All of the breaching direction's sub-threshold transactions in the
-  reporting month are included in the flagged record (not just the
-  triggering window).
+- All of the person's in-scope sub-threshold transactions in the reporting
+  month are included in the flagged record (not just the triggering window),
+  with `RuleCode = "208"`.
 
 ## Rule 209 — 24/7 continuous transactions
 [Rule209ContinuousTrading.cs](../BotReport2026/Rules/Rule209ContinuousTrading.cs)

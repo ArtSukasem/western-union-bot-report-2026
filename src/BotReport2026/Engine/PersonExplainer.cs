@@ -346,51 +346,45 @@ public static class PersonExplainer
         var s = Section($"Rule 208 — Structuring (ยอดต่ำกว่า {Money(cfg.Rule208SubThreshold)} บาท)",
                         ExplainVerdict.Miss);
 
-        var sub = reporting
+        var branches = Rule208Structuring.IncludedBranches(cfg);
+        var txns = reporting
+            .Where(t => BranchScope.IsOutboundAt(t, branches))
             .Where(t => t.Principal < cfg.Rule208SubThreshold && t.Principal > 0 && t.TransactionDate.HasValue)
             .ToList();
-        s.Lines.Add($"{Bullet}ขั้นที่ 1 — คัดเฉพาะรายการต่ำกว่าเกณฑ์: {sub.Count:N0} จาก {reporting.Count:N0} รายการ");
-        if (sub.Count == 0)
+        s.Lines.Add($"{Bullet}ขั้นที่ 1 — คัดเฉพาะขาออก (OB) สาขา {BranchScope.Describe(branches)} " +
+                    $"ที่ต่ำกว่าเกณฑ์: {txns.Count:N0} จาก {reporting.Count:N0} รายการ");
+        if (txns.Count == 0)
         {
             s.Lines.Add(Arrow + "ไม่เข้าเกณฑ์");
             return With(s, ExplainVerdict.Miss);
         }
 
-        bool anyHit = false;
-        foreach (var dir in new[] { "IB", "OB" })
-        {
-            var txns = sub.Where(t => t.Direction == dir).ToList();
-            if (txns.Count == 0) continue;
-            s.Lines.Add($"{Bullet}[{dir}]");
+        decimal monthTotal = txns.Sum(t => t.Principal);
+        bool monthHit = txns.Count > cfg.Rule208MonthlyCount && monthTotal >= cfg.Rule208MonthlyAmount;
+        s.Lines.Add($"{Bullet}รายเดือน : {txns.Count:N0} ครั้ง (เกณฑ์ > {cfg.Rule208MonthlyCount}) " +
+                    $"และ {Money(monthTotal)} บาท (เกณฑ์ ≥ {Money(cfg.Rule208MonthlyAmount)}) → " +
+                    (monthHit ? "เข้าเกณฑ์" : "ไม่เข้าเกณฑ์"));
 
-            decimal monthTotal = txns.Sum(t => t.Principal);
-            bool monthHit = txns.Count > cfg.Rule208MonthlyCount && monthTotal >= cfg.Rule208MonthlyAmount;
-            s.Lines.Add($"{Bullet}   รายเดือน : {txns.Count:N0} ครั้ง (เกณฑ์ > {cfg.Rule208MonthlyCount}) " +
-                        $"และ {Money(monthTotal)} บาท (เกณฑ์ ≥ {Money(cfg.Rule208MonthlyAmount)}) → " +
-                        (monthHit ? "เข้าเกณฑ์" : "ไม่เข้าเกณฑ์"));
+        var worstDay = txns.GroupBy(t => t.TransactionDate!.Value.Date)
+            .OrderByDescending(g => g.Count()).First();
+        bool dayHit = txns.GroupBy(t => t.TransactionDate!.Value.Date).Any(g =>
+            g.Count() > cfg.Rule208DailyCount && g.Sum(t => t.Principal) >= cfg.Rule208DailyAmount);
+        s.Lines.Add($"{Bullet}รายวัน (วันที่ถี่สุด {worstDay.Key:yyyy-MM-dd}) : {worstDay.Count():N0} ครั้ง " +
+                    $"(เกณฑ์ > {cfg.Rule208DailyCount}) และ {Money(worstDay.Sum(t => t.Principal))} บาท " +
+                    $"(เกณฑ์ ≥ {Money(cfg.Rule208DailyAmount)}) → " + (dayHit ? "เข้าเกณฑ์" : "ไม่เข้าเกณฑ์"));
 
-            var worstDay = txns.GroupBy(t => t.TransactionDate!.Value.Date)
-                .OrderByDescending(g => g.Count()).First();
-            bool dayHit = txns.GroupBy(t => t.TransactionDate!.Value.Date).Any(g =>
-                g.Count() > cfg.Rule208DailyCount && g.Sum(t => t.Principal) >= cfg.Rule208DailyAmount);
-            s.Lines.Add($"{Bullet}   รายวัน (วันที่ถี่สุด {worstDay.Key:yyyy-MM-dd}) : {worstDay.Count():N0} ครั้ง " +
-                        $"(เกณฑ์ > {cfg.Rule208DailyCount}) และ {Money(worstDay.Sum(t => t.Principal))} บาท " +
-                        $"(เกณฑ์ ≥ {Money(cfg.Rule208DailyAmount)}) → " + (dayHit ? "เข้าเกณฑ์" : "ไม่เข้าเกณฑ์"));
+        var byWeek = txns.GroupBy(t => (t.TransactionDate!.Value.Year,
+                                        ISOWeek.GetWeekOfYear(t.TransactionDate.Value))).ToList();
+        var worstWeek = byWeek.OrderByDescending(g => g.Count()).First();
+        bool weekHit = byWeek.Any(g =>
+            g.Count() > cfg.Rule208WeeklyCount && g.Sum(t => t.Principal) >= cfg.Rule208WeeklyAmount);
+        s.Lines.Add($"{Bullet}รายสัปดาห์ (สัปดาห์ที่ถี่สุด W{worstWeek.Key.Item2}) : {worstWeek.Count():N0} ครั้ง " +
+                    $"(เกณฑ์ > {cfg.Rule208WeeklyCount}) และ {Money(worstWeek.Sum(t => t.Principal))} บาท " +
+                    $"(เกณฑ์ ≥ {Money(cfg.Rule208WeeklyAmount)}) → " + (weekHit ? "เข้าเกณฑ์" : "ไม่เข้าเกณฑ์"));
 
-            var byWeek = txns.GroupBy(t => (t.TransactionDate!.Value.Year,
-                                            ISOWeek.GetWeekOfYear(t.TransactionDate.Value))).ToList();
-            var worstWeek = byWeek.OrderByDescending(g => g.Count()).First();
-            bool weekHit = byWeek.Any(g =>
-                g.Count() > cfg.Rule208WeeklyCount && g.Sum(t => t.Principal) >= cfg.Rule208WeeklyAmount);
-            s.Lines.Add($"{Bullet}   รายสัปดาห์ (สัปดาห์ที่ถี่สุด W{worstWeek.Key.Item2}) : {worstWeek.Count():N0} ครั้ง " +
-                        $"(เกณฑ์ > {cfg.Rule208WeeklyCount}) และ {Money(worstWeek.Sum(t => t.Principal))} บาท " +
-                        $"(เกณฑ์ ≥ {Money(cfg.Rule208WeeklyAmount)}) → " + (weekHit ? "เข้าเกณฑ์" : "ไม่เข้าเกณฑ์"));
-
-            anyHit |= monthHit || dayHit || weekHit;
-        }
-
-        s.Lines.Add(Arrow + (anyHit ? "เข้าเกณฑ์ Rule 208 (เข้าข้อใดข้อหนึ่งก็พอ)" : "ไม่เข้าเกณฑ์ Rule 208"));
-        return With(s, anyHit ? ExplainVerdict.Hit : ExplainVerdict.Miss);
+        bool hit = monthHit || dayHit || weekHit;
+        s.Lines.Add(Arrow + (hit ? "เข้าเกณฑ์ Rule 208 (เข้าข้อใดข้อหนึ่งก็พอ)" : "ไม่เข้าเกณฑ์ Rule 208"));
+        return With(s, hit ? ExplainVerdict.Hit : ExplainVerdict.Miss);
     }
 
     // ------------------------------------------------------------------- 209

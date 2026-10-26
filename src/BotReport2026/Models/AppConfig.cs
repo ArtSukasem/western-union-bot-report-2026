@@ -33,7 +33,8 @@ public class AppConfig
     public decimal Rule206PrincipalThreshold { get; set; } = 700000m;
     public int Rule206TxnCountThreshold { get; set; } = 20;
 
-    // Rule 208
+    // Rule 208 — outbound only, and only these branches (the online channel). Empty = every branch.
+    public List<string> Rule208Branches { get; set; } = new() { "ATH170025", "ATH170014" };
     public decimal Rule208SubThreshold { get; set; } = 50000m;
     public int Rule208DailyCount { get; set; } = 10;
     public decimal Rule208DailyAmount { get; set; } = 150000m;

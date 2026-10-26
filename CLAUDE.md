@@ -100,6 +100,7 @@ RSP files have 121 columns. Key columns used across rules:
 - Threshold: monthly principal ≥ **700,000 THB** or transaction count ≥ **20 times/month** (both **user-configurable**) → DS_SBE.
 
 ### Rule 208 — Structuring (High frequency, sub-threshold amounts)
+- **Outbound only, and only branches `ATH170025`, `ATH170014`** (the online channel; cl16; branch list **user-configurable**) — inbound and every other branch are ignored.
 - Filter transactions with principal < 50,000 THB (i.e., ≤ 49,999 THB).
 - Flag if any of the following in the reporting month (**all thresholds user-configurable**):
   - > 8–10 times/day **and** daily total ≥ 150,000 THB

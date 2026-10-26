@@ -29,6 +29,7 @@ start of every run (`MainForm.StartRun`), not only when the user clicks "บั�
 | `Rule206HighRiskBranches` | `[]` (empty) | Rule 206 — empty means the rule is a no-op |
 | `Rule206PrincipalThreshold` | 700000 | Rule 206 |
 | `Rule206TxnCountThreshold` | 20 | Rule 206 |
+| `Rule208Branches` | `["ATH170025", "ATH170014"]` | Rule 208 (outbound only) — the only branches counted. Empty = every branch. A `config.json` without this key gets the default |
 | `Rule208SubThreshold` | 50000 | Rule 208 — transactions strictly below this are "sub-threshold" |
 | `Rule208DailyCount` / `Rule208DailyAmount` | 10 / 150000 | Rule 208 daily check |
 | `Rule208WeeklyCount` / `Rule208WeeklyAmount` | 20 / 150000 | Rule 208 weekly check |

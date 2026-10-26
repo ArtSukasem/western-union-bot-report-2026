@@ -10,11 +10,12 @@ public class Rule208Structuring : IRuleEngine
     public (List<SbeRecord>, List<SaeRecord>) Execute(RuleContext ctx)
     {
         var sbe = new List<SbeRecord>();
-        var period = ctx.ReportingMonth.ToString("yyyy-MM");
         var cfg = ctx.Config;
+        var branches = IncludedBranches(cfg);
 
-        // Filter: only sub-threshold transactions
+        // Filter: outbound at the configured branches, sub-threshold transactions only
         var subTxns = ctx.ReportingMonthRsp
+            .Where(t => BranchScope.IsOutboundAt(t, branches))
             .Where(t => t.Principal < cfg.Rule208SubThreshold && t.Principal > 0)
             .Where(t => !string.IsNullOrWhiteSpace(t.PersonId))
             .ToList();
@@ -58,23 +59,16 @@ public class Rule208Structuring : IRuleEngine
         foreach (var group in byPerson)
         {
             var txns = group.Where(t => t.TransactionDate.HasValue).ToList();
-            if (txns.Count == 0) continue;
+            if (!IsFlagged(txns)) continue;
 
-            var ibTxns = txns.Where(t => t.Direction == "IB").ToList();
-            var obTxns = txns.Where(t => t.Direction == "OB").ToList();
-
-            bool ibBreach = IsFlagged(ibTxns);
-            bool obBreach = IsFlagged(obTxns);
-
-            var resolved = DirectionalFlagResolver.Resolve(ibBreach, ibTxns, obBreach, obTxns);
-            if (resolved == null) continue;
-            var (flaggedTxns, suffix) = resolved.Value;
-
-            var first = flaggedTxns[0];
-            sbe.AddRange(SbeRecordFactory.From(flaggedTxns, RuleCode + suffix, ctx));
+            sbe.AddRange(SbeRecordFactory.From(txns, RuleCode, ctx));
         }
 
-        ctx.LogCallback($"Rule 208: พบ {sbe.Count} รายการ Structuring");
+        ctx.LogCallback($"Rule 208: พบ {sbe.Count} รายการ Structuring (เฉพาะขาออก สาขา {BranchScope.Describe(branches)})");
         return (sbe, new List<SaeRecord>());
     }
+
+    /// <summary>Rule208Branches — outbound at these branches only. Empty = every branch.</summary>
+    public static HashSet<string> IncludedBranches(AppConfig config) =>
+        BranchScope.Normalize(config.Rule208Branches);
 }

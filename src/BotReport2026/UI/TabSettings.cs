@@ -19,6 +19,7 @@ public class TabSettings : UserControl
     private NumericUpDown _n206Principal, _n206Count;
     // Rule 208
     private NumericUpDown _n208Sub, _n208DayCount, _n208DayAmt, _n208WkCount, _n208WkAmt, _n208MoCount, _n208MoAmt;
+    private TextBox _tb208Branches;
     // Rule 209
     private NumericUpDown _n209Hours;
 
@@ -118,6 +119,8 @@ public class TabSettings : UserControl
         AddRow(gb, "ยอดรวม/สัปดาห์ ≥ (บาท):", _n208WkAmt = MakeNum(1m, 100000000m, 150000m, 0));
         AddRow(gb, "จำนวนครั้ง/เดือน >", _n208MoCount = MakeNum(1, 1000, 50));
         AddRow(gb, "ยอดรวม/เดือน ≥ (บาท):", _n208MoAmt = MakeNum(1m, 100000000m, 150000m, 0));
+        AddRow(gb, "สาขาที่นำมาคิด (คิดเฉพาะขาออก, ว่าง = ทุกสาขา) — บรรทัดละ 1:",
+            _tb208Branches = MakeTextBox("ATH170025\r\nATH170014"), labelTop: true);
         return gb;
     }
 
@@ -155,6 +158,7 @@ public class TabSettings : UserControl
             Rule206HighRiskBranches = SplitLines(_tb206Branches.Text),
             Rule206PrincipalThreshold = _n206Principal.Value,
             Rule206TxnCountThreshold = (int)_n206Count.Value,
+            Rule208Branches = SplitLines(_tb208Branches.Text),
             Rule208SubThreshold = _n208Sub.Value,
             Rule208DailyCount = (int)_n208DayCount.Value,
             Rule208DailyAmount = _n208DayAmt.Value,
@@ -181,6 +185,7 @@ public class TabSettings : UserControl
         _tb206Branches.Text = string.Join(Environment.NewLine, c.Rule206HighRiskBranches ?? new());
         _n206Principal.Value = c.Rule206PrincipalThreshold;
         _n206Count.Value = c.Rule206TxnCountThreshold;
+        _tb208Branches.Text = string.Join(Environment.NewLine, c.Rule208Branches ?? new());
         _n208Sub.Value = c.Rule208SubThreshold;
         _n208DayCount.Value = c.Rule208DailyCount;
         _n208DayAmt.Value = c.Rule208DailyAmount;

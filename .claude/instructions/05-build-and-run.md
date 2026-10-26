@@ -3,7 +3,8 @@
 Target framework: `net8.0-windows` (WinForms, `OutputType=WinExe`). Solution file:
 [BotReport2026.slnx](../BotReport2026.slnx). Project file:
 [BotReport2026.csproj](../BotReport2026/BotReport2026.csproj). Current version:
-`0.2.0` (`<Version>` in the csproj).
+`0.3.0` (`<Version>` in the csproj — shown in the window title and stamped into
+DS_SAE via `AppVersion`, so bump it with each release).
 
 ## Build / run (dev)
 

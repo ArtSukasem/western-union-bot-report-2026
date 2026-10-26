@@ -1,6 +1,6 @@
 # สรุปแหล่งข้อมูลของแต่ละ Rule
 
-สรุปจากโค้ดใน `src/BotReport2026/` (v0.2.0) ณ วันที่ 23 ต.ค. 2026 — บอกว่าแต่ละ rule
+สรุปจากโค้ดใน `src/BotReport2026/` (v0.3.0) ณ วันที่ 26 ต.ค. 2026 — บอกว่าแต่ละ rule
 อ่านไฟล์ lookup อะไร และคำนวณจากไฟล์ / คอลัมน์ไหน — ดู flowchart แต่ละ rule ได้ที่
 [rule-flowcharts-th.md](rule-flowcharts-th.md)
 

@@ -119,9 +119,40 @@ public static class SaeWriter
         ws.Column(16).Width = Math.Min(ws.Column(16).Width, 55);
         ws.Row(1).Height = 30;
 
+        StampVersion(pkg, ws);
         AddExportButton(pkg, ws);
 
         pkg.SaveAs(new FileInfo(outputPath));
+    }
+
+    /// <summary>Right edge of the export button on the toolbar row, in pixels.</summary>
+    private const int ButtonRightPx = 2 + 210;
+
+    /// <summary>
+    /// Records which program version produced the workbook: a label on the toolbar row,
+    /// just right of the export button (the export macro starts below the header row, so
+    /// it never reaches the CSV), and the workbook properties (File → Info), which
+    /// survive even if someone clears row 1. Runs after the column widths are final.
+    /// </summary>
+    private static void StampVersion(ExcelPackage pkg, ExcelWorksheet ws)
+    {
+        string stamp = $"{AppVersion.Label} · สร้างเมื่อ {DateTime.Now:yyyy-MM-dd HH:mm}";
+
+        // First column that starts clear of the button (Excel width units ≈ 7 px + 5 px padding)
+        int col = 1;
+        double leftPx = 0;
+        while (leftPx < ButtonRightPx + 8 && col < Headers.Length)
+            leftPx += ws.Column(col++).Width * 7 + 5;
+
+        var cell = ws.Cells[1, col];
+        cell.Value = stamp;
+        cell.Style.Font.Italic = true;
+        cell.Style.Font.Color.SetColor(System.Drawing.Color.DimGray);
+        cell.Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
+        pkg.Workbook.Properties.Title = $"DS_SAE — {AppVersion.Label}";
+        pkg.Workbook.Properties.Comments = stamp;
+        pkg.Workbook.Properties.SetCustomPropertyValue("BotReportVersion", AppVersion.Text);
     }
 
     /// <summary>

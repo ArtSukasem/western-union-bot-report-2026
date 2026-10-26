@@ -33,8 +33,7 @@ public partial class MainForm : Form
     public MainForm()
     {
         InitializeComponent();
-        var ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-        Text = $"BotReport 2026 — SBR Report Generator  v{ver!.Major}.{ver.Minor}";
+        Text = $"BotReport 2026 — SBR Report Generator  v{AppVersion.Text}";
         MinimumSize = new Size(900, 800);
         Size = new Size(1000, 900);
         StartPosition = FormStartPosition.CenterScreen;

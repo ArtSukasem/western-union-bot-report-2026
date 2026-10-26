@@ -169,7 +169,11 @@ Layouts follow requirements v3 sheets `(DS_SBE)` and `(DS_SAE)`.
   free-text helper** at column 8, immediately after field 7.
   - **Row 1 is a toolbar row** holding the export button, so headers are on
     **row 2** and data starts on **row 3**; the frozen pane keeps the button
-    visible. `SaeWriter.HeaderRow` is the single source of truth for this and is
+    visible. Right of the button, row 1 also carries a version stamp
+    (`BotReport 2026 v{csproj Version} · สร้างเมื่อ {yyyy-MM-dd HH:mm}`, from
+    `AppVersion`); the same version goes into the workbook properties (Title,
+    Comments, custom `BotReportVersion`). The export macro starts below the
+    header row, so the stamp never reaches the CSV. `SaeWriter.HeaderRow` is the single source of truth for this and is
     passed into the VBA generator, so the two cannot drift apart.
   - The header row carries an **autofilter** over `A{HeaderRow}:Q{lastRow}`.
     It is applied **before** `ApplyProtection` on purpose: a protected sheet lets

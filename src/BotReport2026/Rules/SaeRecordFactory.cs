@@ -61,6 +61,11 @@ public static class SaeRecordFactory
             return sae;
         }
 
+        // Rule 203-Retail, occupation "อื่น ๆ" (no lookup income, so the fallback income
+        // was used) and over the threshold: pre-select result "1" — left editable.
+        if (sbe.RuleCode == "203-Retail" && sbe.IsOtherOccupation)
+            sae.EddResult = ClassificationTables.EddResultOptions[1];
+
         sae.CounterpartyTypeCode = ctx.ReferenceData.ResolveCounterpartyType(t.Nationality);
         sae.TransactionTypeCode = t.Direction == "IB"
             ? ClassificationTables.TxnTypeInbound

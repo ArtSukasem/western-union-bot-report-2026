@@ -295,6 +295,8 @@ public static class PersonExplainer
                          : over ? "เกินเกณฑ์แต่ไม่มีธุรกรรมเดือนที่รายงาน จึงไม่รายงาน"
                                 : "ไม่เข้าเกณฑ์"));
 
+        if (hit && match == null)
+            s.Lines.Add($"{Bullet}อาชีพอื่น ๆ และเกินเกณฑ์ → DS_SAE field 6 กรอกให้เป็น \"1 = พบว่าเป็นพฤติกรรมที่ผิดปกติ\"");
         s.Lines.Add(Arrow + (hit ? "เข้าเกณฑ์ Rule 203-Retail" : "ไม่เข้าเกณฑ์ Rule 203-Retail"));
         return With(s, hit ? ExplainVerdict.Hit : ExplainVerdict.Miss);
     }

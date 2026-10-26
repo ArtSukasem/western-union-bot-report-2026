@@ -185,9 +185,14 @@ Layouts follow requirements v3 sheets `(DS_SBE)` and `(DS_SAE)`.
     their result cell is **locked**; every other cell is explicitly unlocked
     before the sheet is protected, since Excel locks all cells by default.
     `AllowEditObject` is on so the button stays clickable under protection.
-  - Rule 203-Online rows are pre-filled with result `"0"` but left editable —
-    sheet (A) says those already cleared EDD, while the DS_SAE sheet only
-    mandates locking for 101.
+  - Rule 203-Online rows are pre-filled but left editable — sheet (A) says those
+    already went through EDD, while the DS_SAE sheet only mandates locking for 101.
+    Approved/Received/Delivered → result `"0"`; Refunded → result `"1"`, field 7 =
+    the "อื่น ๆ (ระบุ)" dropdown option and the 7.1 helper = `EDD ไม่ผ่าน` (so the
+    exported field 7 reads `EDD ไม่ผ่าน`). Field 5 = report date for both.
+  - Rule 203-Retail rows whose occupation fell back to "อื่น ๆ"
+    (`SbeRecord.IsOtherOccupation`) are pre-filled with result `"1"` only —
+    fields 5, 7 and 9 stay blank for staff, and the cell is not locked.
 - **`error.xlsx`** — MTCN / Citizen ID / Error Message / **Source File** / **Row**,
   written only when a `2002700001` (Personal Id) row's ID is not exactly 13 digits.
   A **warning**: the row is still reported in DS_SBE. A stale file from a previous

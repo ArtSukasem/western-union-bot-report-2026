@@ -65,6 +65,12 @@ public class SbeRecord
     /// </summary>
     public TransactionReportRow? OnlineSource { get; set; }
 
+    /// <summary>
+    /// Rule 203-Retail: the person's occupation matched no lookup row with an income
+    /// ("อื่น ๆ"), so Rule203OtherMonthlyIncome was used — DS_SAE pre-answers these as abnormal.
+    /// </summary>
+    public bool IsOtherOccupation { get; set; }
+
     /// <summary>Internal rule identifier including the -IB/-OB suffix, for logging only.</summary>
     public string RuleCode { get; set; } = "";
 

@@ -60,24 +60,29 @@ Two independent sub-checks, both tagged `BehaviorType = "203"` but different `Ru
 
 - **203-Online**: every row already present in `ctx.TransactionReport` is flagged
   (the reader — see [03-data-formats.md](03-data-formats.md) — has already
-  filtered to `Error_Reason` starting with "Income" and `Status` in
-  Approved/Received/Delivered). Each row produces **both** an `SbeRecord`
-  (`HasSae = true`) and a linked `SaeRecord` — this is the only rule that emits
-  DS_SAE rows.
-- **203-Retail**: combines reporting + historical RSP, excludes branches in
-  `Config.Rule203ExcludedBranches` (default `ATH170025`, the online branch),
-  restricts to a rolling window of `Config.Rule203RollingMonths` months back from
-  the reporting month (default 3), groups by person, looks up occupation
-  (falling back through `OccupationReader.FindExpectedIncome` — exact match →
-  hardcoded fallback map → substring match; occupation is looked up once per
-  person, not per direction), and flags a direction if that direction's window
-  total exceeds `expectedIncome × Config.Rule203Multiplier` (default 3×). A
-  direction only counts as breached if it also has reporting-month
-  transactions to report. Only the **reporting-month** transactions for the
-  breaching direction(s) are written to `SbeRecord` (the rolling window is
-  only used to test the threshold).
-- If no expected income can be resolved for an occupation, the person is skipped
-  (logged, not flagged).
+  filtered to `Error_Reason` containing "income" and `Status` in
+  Approved/Received/Delivered/Refunded). Each row produces an `SbeRecord` that
+  keeps its Transaction Report row in `OnlineSource`, so `SaeRecordFactory` can
+  pre-answer the DS_SAE row by status: Approved/Received/Delivered (EDD passed) →
+  result `0`; Refunded (EDD not passed) → result `1`, reason = the "อื่น ๆ"
+  option, 7.1 = `EDD ไม่ผ่าน`. Both get field 5 = report date and stay editable.
+- **203-Retail**: **outbound (`Direction == "OB"`) only** — inbound RSP is not
+  used at all. Combines reporting + historical outbound RSP, excludes branches in
+  `Config.Rule203ExcludedBranches` (default `ATH170025`, `ATH170014`, the online
+  channel), restricts to the reporting month plus `Config.Rule203RollingMonths`
+  prior months (default 3), and groups by person (cl39). Expected income comes
+  from `ResolveIncome`: the first of the person's outbound transactions (reporting
+  month first) whose occupation resolves via `OccupationLookup.Resolve` (cl54
+  exact → cl104 fuzzy) to a lookup row with an income; if none does,
+  `Config.Rule203OtherMonthlyIncome` (default 49,999) is used. Flags when the
+  window total exceeds `expectedIncome × Config.Rule203Multiplier` (default 3×)
+  **and** the person has reporting-month transactions to report. Only those
+  **reporting-month** outbound transactions are written to `SbeRecord`, with
+  `RuleCode = "203-Retail"` (the rolling window is only used to test the
+  threshold). When the income came from the "อื่น ๆ" fallback (`match == null`),
+  the records get `IsOtherOccupation = true` and `SaeRecordFactory` pre-fills
+  DS_SAE field 6 with result `1` (editable). The filter lives in `Rule203IncomeMismatch.IsRetailOutbound`,
+  shared with the explain tab.
 
 ## Rule 206 — High-risk border branches
 [Rule206HighRiskBranch.cs](../BotReport2026/Rules/Rule206HighRiskBranch.cs)

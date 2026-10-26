@@ -40,7 +40,7 @@ public class Rule203IncomeMismatch : IRuleEngine
             .Where(t => !string.IsNullOrWhiteSpace(t.PersonId))
             .GroupBy(t => t.PersonId.Trim(), StringComparer.OrdinalIgnoreCase);
 
-        int otherIncomeCount = 0;
+        int otherIncomeCount = 0, otherFlaggedCount = 0;
         foreach (var group in byPerson)
         {
             string personId = group.Key;
@@ -67,12 +67,17 @@ public class Rule203IncomeMismatch : IRuleEngine
                 .ToList();
             if (windowTotal <= threshold || reportingTxns.Count == 0) continue;
 
-            sbeList.AddRange(SbeRecordFactory.From(reportingTxns, "203-Retail", ctx));
+            // "อื่น ๆ" over the threshold → DS_SAE field 6 is pre-answered "1" downstream
+            var records = SbeRecordFactory.From(reportingTxns, "203-Retail", ctx).ToList();
+            foreach (var r in records) r.IsOtherOccupation = match == null;
+            if (match == null) otherFlaggedCount++;
+            sbeList.AddRange(records);
         }
 
         if (otherIncomeCount > 0)
             ctx.LogCallback($"Rule 203 Retail: {otherIncomeCount:N0} คนไม่พบรายได้ตามอาชีพในไฟล์ lookup " +
-                            $"→ ใช้รายได้อาชีพอื่น ๆ {ctx.Config.Rule203OtherMonthlyIncome:N0} บาท/เดือน");
+                            $"→ ใช้รายได้อาชีพอื่น ๆ {ctx.Config.Rule203OtherMonthlyIncome:N0} บาท/เดือน " +
+                            $"(เกินเกณฑ์ {otherFlaggedCount:N0} คน → DS_SAE ผลการตรวจสอบ = 1)");
         int refunded = ctx.TransactionReport.Count(r => r.IsRefunded);
         ctx.LogCallback($"Rule 203: Online={ctx.TransactionReport.Count} (Refunded={refunded}), " +
                         $"Retail={sbeList.Count - ctx.TransactionReport.Count} รายการ");

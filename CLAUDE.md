@@ -91,7 +91,8 @@ RSP files have 121 columns. Key columns used across rules:
 **Retail channel (RSP outbound only — inbound is not used; exclude online branches `ATH170025`, `ATH170014`):**
 - Rolling 3 months (prior months; **user-configurable**).
 - Look up occupation: cl89/cl54 exact match on the lookup's English name; if no match (incl. OTHERS) → cl114/cl104 fuzzy match ≥ **80%** (**user-configurable**) → expected monthly income from the lookup. The same match supplies DS_SBE field 16 from the lookup's `BoT code` column (no match → `2003500015`). No match with an income → occupation is "Others" → expected monthly income = **49,999 THB** (**user-configurable**) instead of skipping the person.
-- If total principal in rolling 3 months > **3× expected monthly income** (multiplier **user-configurable**) → DS_SBE.
+- If total outbound principal in the window > **3× expected monthly income** (multiplier **user-configurable**) → the person's reporting-month outbound transactions → DS_SBE.
+- When that person's occupation is "Others" (the 49,999 fallback), their DS_SAE rows are pre-filled with field 6 = `1` (abnormal), left editable; everyone else's field 6 is left for staff.
 - Branch account exclusion list is **user-configurable**.
 
 ### Rule 206 — Transactions in High-Risk Border Branches

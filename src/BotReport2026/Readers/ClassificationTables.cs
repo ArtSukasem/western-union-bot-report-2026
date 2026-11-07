@@ -70,7 +70,7 @@ public static class ClassificationTables
 
     /// <summary>Rule 101 rows are pre-answered: on the CFR list is by definition abnormal.</summary>
     public const string Rule101EddResultOption = "1 = ตรวจสอบแล้ว พบว่าเป็นพฤติกรรมที่ผิดปกติ";
-    public const string Rule101EddReason = "รายชื่ออยู่ใน CFR";
+    public const string Rule101EddReason = "ณ วันที่ทำธุรกรรมยังไม่มีรายชื่อใน CFR";
 
     /// <summary>Marker prefix for the free-text "other" option in the reason dropdown.</summary>
     public const string EddReasonOtherPrefix = "อื่น ๆ";

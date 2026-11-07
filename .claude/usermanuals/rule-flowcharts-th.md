@@ -59,7 +59,7 @@ flowchart TD
     E -- ใช่ --> HIT
     E -- ไม่ --> NO
     HIT --> R["DS_SBE: ทุกรายการของคนนั้นในเดือนรายงาน IB + OB<br/>field 4 = 101;211<br/>field 5 = ข้อความรวม 101 + 211"]
-    R --> S["DS_SAE กรอกให้ล่วงหน้าและล็อก<br/>field 6 = 1 ผิดปกติ<br/>field 7 = รายชื่ออยู่ใน CFR<br/>field 9 = วันที่รันรายงาน"]
+    R --> S["DS_SAE กรอกให้ล่วงหน้าและล็อก<br/>field 6 = 1 ผิดปกติ<br/>field 7 = ณ วันที่ทำธุรกรรมยังไม่มีรายชื่อใน CFR<br/>field 9 = วันที่รันรายงาน"]
 
     L1[("lookups/saction_list.xlsx<br/>sheet UN · sheet TH")] -.-> C
     L1 -.-> D

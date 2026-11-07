@@ -185,7 +185,7 @@ Layouts follow requirements v3 sheets `(DS_SBE)` and `(DS_SAE)`.
     `_options` sheet — not inline lists, because the EDD reasons exceed Excel's
     255-character inline limit. EPPlus emits these as `x14` extension validations
     since they reference another sheet; Excel honours them.
-  - Rule 101 rows are pre-answered (result `"1"`, reason "รายชื่ออยู่ใน CFR") and
+  - Rule 101 rows are pre-answered (result `"1"`, reason "ณ วันที่ทำธุรกรรมยังไม่มีรายชื่อใน CFR") and
     their result cell is **locked**; every other cell is explicitly unlocked
     before the sheet is protected, since Excel locks all cells by default.
     `AllowEditObject` is on so the button stays clickable under protection.
